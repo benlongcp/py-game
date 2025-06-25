@@ -107,11 +107,24 @@ GRAVITY_DOT_COLOR = (100, 100, 100, 100)  # Semi-transparent gray (with alpha)
 GRAVITY_DOT_OUTLINE = (80, 80, 80, 150)  # Slightly more opaque outline
 
 # Gravitational physics
-GRAVITY_STRENGTH = 2.0  # Force multiplier for gravitational pull
+GRAVITY_STRENGTH = 10.0  # Force multiplier for gravitational pull
 GRAVITY_MAX_DISTANCE = (
     STATIC_CIRCLE_RADIUS
-    * 2  # Circle radius + one radius extension beyond boundary (total 2x radius)
+    * 6  # Circle radius + three radius extensions beyond boundary (total 4x radius)
 )
 GRAVITY_FALLOFF_POWER = (
     1.5  # How quickly gravity falls off with distance (higher = more focused)
 )
+
+# Scoring system
+SCORE_OVERLAP_TIME = (
+    1.0  # Seconds the blue square must be fully inside a static circle to score
+)
+SCORE_OVERLAP_FRAMES = int(SCORE_OVERLAP_TIME * FPS)  # Convert to frames
+BLUE_SQUARE_RESPAWN_X = 0.0  # Center of grid
+BLUE_SQUARE_RESPAWN_Y = 0.0  # Center of grid
+
+# Score display
+SCORE_TEXT_SIZE = 14
+SCORE_TEXT_COLOR = (0, 0, 0)  # Black text
+SCORE_POSITION_Y_OFFSET = 10  # Distance from bottom of screen

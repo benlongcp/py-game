@@ -39,16 +39,16 @@ class SplitScreenView(QWidget):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
-        # Draw Player 1 view (left side)
-        self._draw_player_view(painter, 1, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT)
+        # Draw Player 2 view (left side - Purple)
+        self._draw_player_view(painter, 2, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT)
 
         # Draw divider line
         painter.setPen(QPen(QColor(100, 100, 100), 3))
         painter.drawLine(WINDOW_WIDTH, 0, WINDOW_WIDTH, WINDOW_HEIGHT)
 
-        # Draw Player 2 view (right side)
+        # Draw Player 1 view (right side - Red)
         self._draw_player_view(
-            painter, 2, WINDOW_WIDTH + 20, 0, WINDOW_WIDTH, WINDOW_HEIGHT
+            painter, 1, WINDOW_WIDTH + 20, 0, WINDOW_WIDTH, WINDOW_HEIGHT
         )
 
     def _draw_player_view(
@@ -119,6 +119,11 @@ class SplitScreenView(QWidget):
             painter.drawText(10, 25, "Player 1 (Red) - Arrow Keys + Space")
         else:
             painter.drawText(10, 25, "Player 2 (Purple) - WASD + Ctrl")
+
+        # Draw score display
+        red_score = self.game_engine.get_red_player_score()
+        purple_score = self.game_engine.get_purple_player_score()
+        Renderer.draw_score(painter, red_score, purple_score, width, height)
 
         painter.restore()
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Test script to verify the gravitational field extends exactly one radius beyond the static circle boundary.
+Test script to verify the gravitational field extends exactly three radius beyond the static circle boundary.
 """
 
 import sys
@@ -14,7 +14,7 @@ import math
 
 
 def test_gravitational_field_boundaries():
-    """Test that gravitational field extends exactly one radius beyond static circle boundary."""
+    """Test that gravitational field extends exactly three radius beyond static circle boundary."""
     print("🎯 Testing Gravitational Field Boundary Extension...")
 
     blue_square = BlueSquare()
@@ -27,15 +27,15 @@ def test_gravitational_field_boundaries():
     print(
         f"   Field extension beyond boundary: {GRAVITY_MAX_DISTANCE - STATIC_CIRCLE_RADIUS:.1f} pixels"
     )
-    print(f"   Expected extension (1 radius): {STATIC_CIRCLE_RADIUS:.1f} pixels")
+    print(f"   Expected extension (3 radius): {STATIC_CIRCLE_RADIUS * 3:.1f} pixels")
 
-    # Verify the extension is exactly one radius
-    expected_extension = STATIC_CIRCLE_RADIUS
+    # Verify the extension is exactly three radius
+    expected_extension = STATIC_CIRCLE_RADIUS * 3
     actual_extension = GRAVITY_MAX_DISTANCE - STATIC_CIRCLE_RADIUS
 
     print(f"\n✅ Boundary Verification:")
     if abs(actual_extension - expected_extension) < 0.1:
-        print(f"   ✅ PASS: Field extends exactly one radius beyond boundary")
+        print(f"   ✅ PASS: Field extends exactly three radius beyond boundary")
         print(
             f"   ✅ Expected: {expected_extension:.1f}, Actual: {actual_extension:.1f}"
         )

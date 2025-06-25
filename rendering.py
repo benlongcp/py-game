@@ -680,3 +680,56 @@ class Renderer:
             int(gravity_dot.radius * 2),
             int(gravity_dot.radius * 2),
         )
+
+    @staticmethod
+    def draw_score(
+        painter,
+        red_score,
+        purple_score,
+        view_width=WINDOW_WIDTH,
+        view_height=WINDOW_HEIGHT,
+    ):
+        """
+        Draw the score display at the bottom of the view.
+
+        Args:
+            painter: QPainter instance
+            red_score: Red player's score
+            purple_score: Purple player's score (0 if single player)
+            view_width, view_height: Dimensions of the view area
+        """
+        from PyQt6.QtGui import QFont
+
+        # Set up font and pen for score text
+        font = QFont()
+        font.setPointSize(SCORE_TEXT_SIZE)
+        painter.setFont(font)
+        painter.setPen(QPen(QColor(*SCORE_TEXT_COLOR), 2))
+
+        # Calculate positions
+        score_y = view_height - SCORE_POSITION_Y_OFFSET
+
+        # Single player mode vs multiplayer mode
+        if purple_score is None or purple_score == 0:
+            # Single player mode - just show red score
+            score_text = f"Score: {red_score}"
+            text_width = painter.fontMetrics().horizontalAdvance(score_text)
+            score_x = (view_width - text_width) // 2  # Center horizontally
+            painter.drawText(score_x, score_y, score_text)
+        else:
+            # Multiplayer mode - show both scores
+            red_text = f"Red: {red_score}"
+            purple_text = f"Purple: {purple_score}"
+
+            # Position red score on left
+            red_x = 10
+            painter.setPen(QPen(QColor(200, 0, 0), 2))  # Red color for red score
+            painter.drawText(red_x, score_y, red_text)
+
+            # Position purple score on right
+            purple_width = painter.fontMetrics().horizontalAdvance(purple_text)
+            purple_x = view_width - purple_width - 10
+            painter.setPen(
+                QPen(QColor(128, 0, 128), 2)
+            )  # Purple color for purple score
+            painter.drawText(purple_x, score_y, purple_text)

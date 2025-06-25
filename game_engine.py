@@ -4,6 +4,7 @@ Manages all game objects, physics, and collisions in a centralized way.
 This allows multiple windows to reference the same game state.
 """
 
+import math
 from PyQt6.QtCore import Qt
 from config import *
 from objects import (
@@ -15,6 +16,7 @@ from objects import (
     PurpleGravitationalDot,
 )
 from physics import PhysicsEngine
+import math
 
 
 class GameEngine:
@@ -31,6 +33,16 @@ class GameEngine:
         self.red_gravity_dot = RedGravitationalDot()
         self.purple_gravity_dot = PurpleGravitationalDot()
 
+        # Scoring system
+        self.red_player_score = 0
+        self.purple_player_score = 0
+        self.red_circle_overlap_timer = (
+            0  # Frames blue square has been fully inside red circle
+        )
+        self.purple_circle_overlap_timer = (
+            0  # Frames blue square has been fully inside purple circle
+        )
+
         # Input states for both players
         self.player1_keys = set()  # Arrow keys + Space
         self.player2_keys = set()  # WASD + Ctrl
@@ -46,6 +58,7 @@ class GameEngine:
         self._handle_input()
         self._update_physics()
         self._handle_collisions()
+        self._update_scoring()
 
     def _handle_input(self):
         """Process input for both players."""
@@ -115,8 +128,6 @@ class GameEngine:
 
     def _handle_player_collision(self):
         """Handle collision between red and purple dots."""
-        import math
-
         distance = math.sqrt(
             (self.red_dot.virtual_x - self.purple_dot.virtual_x) ** 2
             + (self.red_dot.virtual_y - self.purple_dot.virtual_y) ** 2
@@ -211,3 +222,72 @@ class GameEngine:
 
         # Apply gravity from purple gravitational dot
         self.purple_gravity_dot.apply_gravity_to_object(self.blue_square)
+
+    def _update_scoring(self):
+        """Update scoring based on blue square position relative to static circles."""
+        # Import here to avoid circular imports
+        from objects import StaticRedCircle, StaticPurpleCircle
+
+        red_circle = StaticRedCircle()
+        purple_circle = StaticPurpleCircle()
+
+        # Check if blue square is fully inside red circle
+        red_distance = math.sqrt(
+            (self.blue_square.x - red_circle.x) ** 2
+            + (self.blue_square.y - red_circle.y) ** 2
+        )
+        red_fully_inside = (
+            red_distance + self.blue_square.size / 2
+        ) <= red_circle.radius
+
+        # Check if blue square is fully inside purple circle
+        purple_distance = math.sqrt(
+            (self.blue_square.x - purple_circle.x) ** 2
+            + (self.blue_square.y - purple_circle.y) ** 2
+        )
+        purple_fully_inside = (
+            purple_distance + self.blue_square.size / 2
+        ) <= purple_circle.radius
+
+        # Update red circle overlap timer
+        if red_fully_inside:
+            self.red_circle_overlap_timer += 1
+            # Reset purple timer since blue square can't be in both circles
+            self.purple_circle_overlap_timer = 0
+        else:
+            self.red_circle_overlap_timer = 0
+
+        # Update purple circle overlap timer
+        if purple_fully_inside:
+            self.purple_circle_overlap_timer += 1
+            # Reset red timer since blue square can't be in both circles
+            self.red_circle_overlap_timer = 0
+        else:
+            self.purple_circle_overlap_timer = 0
+
+        # Check for scoring conditions
+        if self.red_circle_overlap_timer >= SCORE_OVERLAP_FRAMES:
+            self.red_player_score += 1
+            self._respawn_blue_square()
+            self.red_circle_overlap_timer = 0
+
+        if self.purple_circle_overlap_timer >= SCORE_OVERLAP_FRAMES:
+            self.purple_player_score += 1
+            self._respawn_blue_square()
+            self.purple_circle_overlap_timer = 0
+
+    def _respawn_blue_square(self):
+        """Respawn the blue square at the center of the grid."""
+        self.blue_square.x = BLUE_SQUARE_RESPAWN_X
+        self.blue_square.y = BLUE_SQUARE_RESPAWN_Y
+        self.blue_square.velocity_x = 0.0
+        self.blue_square.velocity_y = 0.0
+        self.blue_square.angular_velocity = 0.0
+
+    def get_red_player_score(self):
+        """Get the red player's score."""
+        return self.red_player_score
+
+    def get_purple_player_score(self):
+        """Get the purple player's score."""
+        return self.purple_player_score

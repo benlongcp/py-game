@@ -38,7 +38,16 @@ Tests the gravitational physics system that pulls the blue square toward the cen
 Demonstrates the extended gravitational field range that now affects the blue square when adjacent to static circles.
 
 ### `test_gravitational_field_boundaries.py`
-Verifies that the gravitational field extends exactly one radius distance beyond the static circle boundaries.
+Verifies that the gravitational field extends exactly three radius distance beyond the static circle boundaries.
+
+### `test_scoring_system.py`
+Tests the complete scoring system functionality including overlap detection, score tracking, blue square respawn, and timing requirements for scoring.
+
+### `test_view_swap.py`
+Verifies that the split-screen views are correctly arranged with purple player on the left and red player on the right.
+
+### `test_gravitational_force_increase.py`
+Demonstrates the increased gravitational force strength and compares force magnitudes at different distances.
 
 ## Demo Scripts
 
@@ -47,6 +56,9 @@ Interactive demo showcasing the off-screen indicator feature. Move players aroun
 
 ### `demo_gravitational_physics.py`
 Interactive demo showcasing the gravitational dots feature. Shoot the blue square toward static circles to see gravitational pull effects.
+
+### `demo_scoring_system.py`
+Interactive demo showcasing the scoring system. Automatically demonstrates scoring for both players, then allows manual control to try scoring.
 
 ## Debug Scripts
 
