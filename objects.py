@@ -499,3 +499,63 @@ class PurpleDot(RedDot):
     def get_color(self):
         """Return the purple color for this dot."""
         return (128, 0, 128)  # Purple color
+
+
+class StaticCircle:
+    """Represents a static decorative circle with no collision detection."""
+
+    def __init__(self, x, y, color, outline_color):
+        """
+        Initialize a static circle.
+
+        Args:
+            x, y: World position of the circle center
+            color: RGB tuple for the circle fill color
+            outline_color: RGB tuple for the circle outline color
+        """
+        self.x = float(x)
+        self.y = float(y)
+        self.radius = STATIC_CIRCLE_RADIUS
+        self.color = color
+        self.outline_color = outline_color
+
+    def get_screen_position(self, camera_x, camera_y):
+        """Get the screen position based on camera position."""
+        screen_x = self.x - (camera_x - WINDOW_CENTER_X)
+        screen_y = self.y - (camera_y - WINDOW_CENTER_Y)
+        return screen_x, screen_y
+
+    def is_visible(self, camera_x, camera_y):
+        """Check if the circle is visible on screen."""
+        screen_x, screen_y = self.get_screen_position(camera_x, camera_y)
+
+        return (
+            screen_x + self.radius >= 0
+            and screen_x - self.radius <= WINDOW_WIDTH
+            and screen_y + self.radius >= 0
+            and screen_y - self.radius <= WINDOW_HEIGHT
+        )
+
+
+class StaticRedCircle(StaticCircle):
+    """Red static circle positioned on the left side of the equator."""
+
+    def __init__(self):
+        super().__init__(
+            STATIC_RED_CIRCLE_X,
+            STATIC_RED_CIRCLE_Y,
+            STATIC_RED_CIRCLE_COLOR,
+            STATIC_RED_CIRCLE_OUTLINE,
+        )
+
+
+class StaticPurpleCircle(StaticCircle):
+    """Purple static circle positioned on the right side of the equator."""
+
+    def __init__(self):
+        super().__init__(
+            STATIC_PURPLE_CIRCLE_X,
+            STATIC_PURPLE_CIRCLE_Y,
+            STATIC_PURPLE_CIRCLE_COLOR,
+            STATIC_PURPLE_CIRCLE_OUTLINE,
+        )

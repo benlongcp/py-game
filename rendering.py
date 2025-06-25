@@ -578,3 +578,52 @@ class Renderer:
         painter.drawEllipse(int(edge_x - 4), int(edge_y - 4), 8, 8)
 
         painter.restore()
+
+    @staticmethod
+    def draw_static_circles(painter, camera_x, camera_y):
+        """
+        Draw the static decorative circles (red and purple).
+
+        Args:
+            painter: QPainter instance
+            camera_x, camera_y: Camera position in world coordinates
+        """
+        # Import here to avoid circular imports
+        from objects import StaticRedCircle, StaticPurpleCircle
+
+        # Create the static circles
+        red_circle = StaticRedCircle()
+        purple_circle = StaticPurpleCircle()
+
+        # Draw red circle if visible
+        if red_circle.is_visible(camera_x, camera_y):
+            Renderer._draw_static_circle(painter, red_circle, camera_x, camera_y)
+
+        # Draw purple circle if visible
+        if purple_circle.is_visible(camera_x, camera_y):
+            Renderer._draw_static_circle(painter, purple_circle, camera_x, camera_y)
+
+    @staticmethod
+    def _draw_static_circle(painter, circle, camera_x, camera_y):
+        """
+        Draw a single static circle.
+
+        Args:
+            painter: QPainter instance
+            circle: StaticCircle instance
+            camera_x, camera_y: Camera position in world coordinates
+        """
+        # Get screen position
+        screen_x, screen_y = circle.get_screen_position(camera_x, camera_y)
+
+        # Set up pen and brush
+        painter.setPen(QPen(QColor(*circle.outline_color), 3))
+        painter.setBrush(QBrush(QColor(*circle.color)))
+
+        # Draw the circle
+        painter.drawEllipse(
+            int(screen_x - circle.radius),
+            int(screen_y - circle.radius),
+            int(circle.radius * 2),
+            int(circle.radius * 2),
+        )

@@ -28,6 +28,9 @@ Tests the split-screen functionality and ensures both players can be rendered co
 ### `test_off_screen_indicator.py`
 Tests the off-screen indicator logic that shows blue arrows pointing toward the blue square when it's outside a player's view.
 
+### `test_static_circle_sizes.py`
+Tests the static circle size calculations and positioning to ensure they fit within the grid boundaries.
+
 ## Demo Scripts
 
 ### `demo_off_screen_indicator.py`

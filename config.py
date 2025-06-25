@@ -78,3 +78,25 @@ INITIAL_DOT_X = WINDOW_CENTER_X
 INITIAL_DOT_Y = WINDOW_CENTER_Y
 INITIAL_SQUARE_X = 300.0
 INITIAL_SQUARE_Y = 150.0
+
+# Static decorative circles
+# Blue square diagonal: sqrt(2) * (DOT_RADIUS * SQUARE_SIZE_MULTIPLIER)
+# Circle diameter should be 10% larger than square diagonal
+import math
+
+SQUARE_DIAGONAL = math.sqrt(2) * (DOT_RADIUS * SQUARE_SIZE_MULTIPLIER)
+STATIC_CIRCLE_DIAMETER = SQUARE_DIAGONAL * 1.33  # 20% bigger than previous 1.1
+STATIC_CIRCLE_RADIUS = STATIC_CIRCLE_DIAMETER / 2
+
+# Static circle positions (on equator line, opposite ends)
+STATIC_CIRCLE_DISTANCE = GRID_RADIUS * 0.8  # 80% of grid radius to stay within bounds
+STATIC_RED_CIRCLE_X = -STATIC_CIRCLE_DISTANCE
+STATIC_RED_CIRCLE_Y = 0.0
+STATIC_PURPLE_CIRCLE_X = STATIC_CIRCLE_DISTANCE
+STATIC_PURPLE_CIRCLE_Y = 0.0
+
+# Static circle colors
+STATIC_RED_CIRCLE_COLOR = (255, 50, 50)  # Red circle
+STATIC_RED_CIRCLE_OUTLINE = (200, 0, 0)  # Darker red outline
+STATIC_PURPLE_CIRCLE_COLOR = (200, 50, 255)  # Purple circle
+STATIC_PURPLE_CIRCLE_OUTLINE = (150, 0, 200)  # Darker purple outline
