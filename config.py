@@ -1,0 +1,77 @@
+"""
+Configuration constants for the Topographical Plane application.
+Contains all physics parameters, display settings, and game constants.
+"""
+
+# Window and display settings
+WINDOW_WIDTH = 400
+WINDOW_HEIGHT = 400
+WINDOW_CENTER_X = 200
+WINDOW_CENTER_Y = 200
+FPS = 60  # Target frames per second
+FRAME_TIME_MS = 16  # Milliseconds per frame (1000/60 ≈ 16)
+
+# Grid settings
+GRID_SPACING = 30
+GRID_DOT_RADIUS = 2
+GRID_RADIUS = 1000  # 2000px diameter = 1000px radius
+GRID_COLOR = (200, 200, 200)  # Light grey
+
+# Red dot settings
+DOT_RADIUS = 5
+DOT_COLOR = (255, 0, 0)  # Red
+DOT_MASS = 5.0  # Increased from 1.0 to 5.0 for more impactful collisions
+
+# Red dot physics
+ACCELERATION = 0.1  # How quickly velocity increases when keys are held
+DECELERATION = (
+    0.99  # Friction factor (0.99 = 1% speed loss per frame, ~10 second stop time)
+)
+MAX_SPEED = 60.0  # Maximum velocity in any direction (increased 10x from 6.0 for high-speed gameplay)
+
+# Projectile settings
+PROJECTILE_RADIUS = 2  # Smaller than the red dot
+PROJECTILE_COLOR = (0, 255, 0)  # Green
+PROJECTILE_MIN_SPEED = 5.0  # Minimum projectile speed
+PROJECTILE_MASS = 5  # Light mass for projectiles
+PROJECTILE_MAX_COUNT = 20  # Maximum number of projectiles on screen
+
+# Blue square settings
+SQUARE_SIZE_MULTIPLIER = 10  # Square is 10x the size of the red dot
+SQUARE_COLOR = (0, 100, 255)  # Blue
+SQUARE_OUTLINE_COLOR = (0, 0, 255)  # Darker blue outline
+SQUARE_PULSE_COLOR = (100, 200, 255)  # Lighter blue for collision pulse
+SQUARE_PULSE_DURATION = 20  # Duration of pulse effect in frames
+SQUARE_MASS = 5.0
+
+# Blue square physics
+SQUARE_FRICTION = 0.995  # Friction for the blue square
+
+# Rotational physics for blue square
+ANGULAR_FRICTION = 0.98  # Rotational friction (similar to linear friction)
+MAX_ANGULAR_VELOCITY = 5.0  # Maximum rotation speed (radians per frame)
+MOMENT_OF_INERTIA_FACTOR = (
+    0.5  # Factor for calculating moment of inertia (I = factor * mass * radius^2)
+)
+
+# Collision physics
+BOUNCE_FACTOR = 0.6  # Energy loss on boundary collision
+RESTITUTION = 0.8  # Bounciness in collisions (0 = no bounce, 1 = perfect bounce)
+
+# Momentum indicator settings
+MOMENTUM_MIN_SPEED = 0.1  # Minimum speed to show momentum indicator
+MOMENTUM_MIN_SIZE = 8  # Minimum triangle size
+MOMENTUM_MAX_SIZE = 20  # Maximum triangle size
+MOMENTUM_DISTANCE = 3  # Distance from dot center to triangle
+
+# Vignette settings
+VIGNETTE_INNER_RADIUS = 150  # Inner radius where vignette starts
+VIGNETTE_OUTER_RADIUS = 200  # Outer radius where vignette is fully opaque
+VIGNETTE_COLOR = (255, 255, 255, 0)  # White, transparent at center
+VIGNETTE_EDGE_COLOR = (255, 255, 255, 200)  # White, mostly opaque at edge
+
+# Starting positions
+INITIAL_DOT_X = WINDOW_CENTER_X
+INITIAL_DOT_Y = WINDOW_CENTER_Y
+INITIAL_SQUARE_X = 300.0
+INITIAL_SQUARE_Y = 150.0
