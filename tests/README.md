@@ -22,6 +22,9 @@ Comprehensive test of Newtonian mechanics between red and purple dots, including
 ### `test_player_max_speeds.py`
 Verifies that both players have identical maximum speeds and physics behavior to ensure fair gameplay.
 
+### `test_player_starting_positions.py`
+Tests that players start in their opponent's goal circles (red player in purple goal, purple player in red goal) for strategic gameplay.
+
 ### `test_rendering_functions.py`
 Verifies that all rendering functions are working correctly and tests the rendering system components.
 
@@ -38,6 +41,12 @@ Tests the static circle size calculations and positioning to ensure they fit wit
 
 ### `test_gravitational_physics.py`
 Tests the gravitational physics system that pulls the blue square toward the center of static circles when overlapping.
+
+### `test_central_gravity.py`
+Tests the invisible central gravitational point at the center of the grid that provides a gentle pull toward the center.
+
+### `test_central_gravity_integration.py`
+Tests the integration of the central gravity point with the full game engine to ensure proper functionality.
 
 ### `test_extended_gravitational_range.py`
 Demonstrates the extended gravitational field range that now affects the blue square when adjacent to static circles.

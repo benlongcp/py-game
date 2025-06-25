@@ -11,7 +11,7 @@ from physics import PhysicsEngine
 class RedDot:
     """Represents the movable red dot with momentum physics."""
 
-    def __init__(self, x=INITIAL_DOT_X, y=INITIAL_DOT_Y):
+    def __init__(self, x=RED_PLAYER_INITIAL_X, y=RED_PLAYER_INITIAL_Y):
         # Position (world coordinates)
         self.virtual_x = float(x)
         self.virtual_y = float(y)
@@ -514,7 +514,7 @@ class Projectile:
 class PurpleDot(RedDot):
     """Represents the second player's purple dot - inherits from RedDot."""
 
-    def __init__(self, x=INITIAL_DOT_X, y=INITIAL_DOT_Y):
+    def __init__(self, x=PURPLE_PLAYER_INITIAL_X, y=PURPLE_PLAYER_INITIAL_Y):
         super().__init__(x, y)
         # Purple dot has the same properties as red dot but different color
         # Color is handled in the rendering layer
@@ -689,3 +689,15 @@ class PurpleGravitationalDot(GravitationalDot):
 
     def __init__(self):
         super().__init__(STATIC_PURPLE_CIRCLE_X, STATIC_PURPLE_CIRCLE_Y)
+
+
+class CentralGravitationalDot(GravitationalDot):
+    """Invisible gravitational dot positioned at the center of the grid."""
+
+    def __init__(self):
+        # Initialize with central gravity configuration
+        super().__init__(CENTRAL_GRAVITY_X, CENTRAL_GRAVITY_Y)
+        # Override with central gravity specific settings
+        self.strength = CENTRAL_GRAVITY_STRENGTH
+        self.max_distance = CENTRAL_GRAVITY_MAX_DISTANCE
+        self.radius = CENTRAL_GRAVITY_RADIUS

@@ -77,10 +77,19 @@ VIGNETTE_COLOR = (255, 255, 255, 0)  # White, transparent at center
 VIGNETTE_EDGE_COLOR = (255, 255, 255, 200)  # White, mostly opaque at edge
 
 # Starting positions
-INITIAL_DOT_X = WINDOW_CENTER_X
-INITIAL_DOT_Y = WINDOW_CENTER_Y
-INITIAL_SQUARE_X = 300.0
-INITIAL_SQUARE_Y = 150.0
+# Red player starts in purple circle goal, purple player starts in red circle goal
+# Note: Static circles are at (-800, 0) for red and (800, 0) for purple
+RED_PLAYER_INITIAL_X = 800.0  # Red player starts in purple goal (right side)
+RED_PLAYER_INITIAL_Y = 0.0
+PURPLE_PLAYER_INITIAL_X = -800.0  # Purple player starts in red goal (left side)
+PURPLE_PLAYER_INITIAL_Y = 0.0
+
+# Legacy starting position (for backward compatibility)
+INITIAL_DOT_X = RED_PLAYER_INITIAL_X  # Default to red player position
+INITIAL_DOT_Y = RED_PLAYER_INITIAL_Y
+
+INITIAL_SQUARE_X = 0.0  # Start at center of grid (same as central gravity point)
+INITIAL_SQUARE_Y = 0.0  # Start at center of grid (same as central gravity point)
 
 # Static decorative circles
 # Blue square diagonal: sqrt(2) * (DOT_RADIUS * SQUARE_SIZE_MULTIPLIER)
@@ -88,7 +97,7 @@ INITIAL_SQUARE_Y = 150.0
 import math
 
 SQUARE_DIAGONAL = math.sqrt(2) * (DOT_RADIUS * SQUARE_SIZE_MULTIPLIER)
-STATIC_CIRCLE_DIAMETER = SQUARE_DIAGONAL * 1.33  # 20% bigger than previous 1.1
+STATIC_CIRCLE_DIAMETER = SQUARE_DIAGONAL * 2.66  # Doubled from 1.33 to 2.66
 STATIC_CIRCLE_RADIUS = STATIC_CIRCLE_DIAMETER / 2
 
 # Static circle positions (on equator line, opposite ends)
@@ -118,6 +127,19 @@ GRAVITY_MAX_DISTANCE = (
 GRAVITY_FALLOFF_POWER = (
     1.5  # How quickly gravity falls off with distance (higher = more focused)
 )
+
+# Central gravity point (invisible)
+CENTRAL_GRAVITY_X = 0.0  # Center of grid
+CENTRAL_GRAVITY_Y = 0.0  # Center of grid
+CENTRAL_GRAVITY_RADIUS = (
+    GRAVITY_DOT_RADIUS  # Same size as other gravity dots (but invisible)
+)
+CENTRAL_GRAVITY_MAX_DISTANCE = (
+    STATIC_CIRCLE_RADIUS * 4
+)  # Half the range of static circle gravity
+CENTRAL_GRAVITY_STRENGTH = (
+    GRAVITY_STRENGTH * 0.5
+)  # Half the strength of static circle gravity
 
 # Scoring system
 SCORE_OVERLAP_TIME = (

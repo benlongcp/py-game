@@ -14,6 +14,7 @@ from objects import (
     PurpleDot,
     RedGravitationalDot,
     PurpleGravitationalDot,
+    CentralGravitationalDot,
 )
 from physics import PhysicsEngine
 import math
@@ -32,6 +33,7 @@ class GameEngine:
         # Gravitational dots for physics effects
         self.red_gravity_dot = RedGravitationalDot()
         self.purple_gravity_dot = PurpleGravitationalDot()
+        self.central_gravity_dot = CentralGravitationalDot()
 
         # Scoring system
         self.red_player_score = 0
@@ -59,8 +61,8 @@ class GameEngine:
     def create_purple_dot(self):
         """Create the purple dot for player 2 if it doesn't exist."""
         if self.purple_dot is None:
-            # Start purple dot at a different position
-            self.purple_dot = PurpleDot(INITIAL_DOT_X - 100, INITIAL_DOT_Y - 100)
+            # Use PurpleDot's default starting position (in red circle goal)
+            self.purple_dot = PurpleDot()
 
     def update_game_state(self):
         """Update all game objects - called every frame."""
@@ -240,6 +242,9 @@ class GameEngine:
 
         # Apply gravity from purple gravitational dot
         self.purple_gravity_dot.apply_gravity_to_object(self.blue_square)
+
+        # Apply gravity from central gravitational dot
+        self.central_gravity_dot.apply_gravity_to_object(self.blue_square)
 
     def _damage_player(self, player, damage_source):
         """Apply damage to a player if not on cooldown."""
