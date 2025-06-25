@@ -4,10 +4,10 @@ Contains all physics parameters, display settings, and game constants.
 """
 
 # Window and display settings
-WINDOW_WIDTH = 400
-WINDOW_HEIGHT = 400
-WINDOW_CENTER_X = 200
-WINDOW_CENTER_Y = 200
+WINDOW_WIDTH = 800
+WINDOW_HEIGHT = 800
+WINDOW_CENTER_X = 400
+WINDOW_CENTER_Y = 400
 FPS = 60  # Target frames per second
 FRAME_TIME_MS = 16  # Milliseconds per frame (1000/60 ≈ 16)
 
