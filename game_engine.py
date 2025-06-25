@@ -43,6 +43,15 @@ class GameEngine:
             0  # Frames blue square has been fully inside purple circle
         )
 
+        # Hit Points system
+        self.red_player_hp = INITIAL_HIT_POINTS
+        self.purple_player_hp = INITIAL_HIT_POINTS
+
+        # Collision tracking to prevent multiple damage from same collision
+        self.red_dot_collision_cooldown = 0
+        self.purple_dot_collision_cooldown = 0
+        self.collision_cooldown_frames = 30  # 0.5 seconds at 60 FPS
+
         # Input states for both players
         self.player1_keys = set()  # Arrow keys + Space
         self.player2_keys = set()  # WASD + Ctrl
@@ -58,6 +67,7 @@ class GameEngine:
         self._handle_input()
         self._update_physics()
         self._handle_collisions()
+        self._update_hit_points()
         self._update_scoring()
 
     def _handle_input(self):
@@ -109,18 +119,22 @@ class GameEngine:
 
     def _handle_collisions(self):
         """Check and resolve collisions between objects."""
-        # Blue square collisions
-        self.blue_square.check_collision_with_dot(self.red_dot)
+        # Blue square collisions (check for hit point damage)
+        if self.blue_square.check_collision_with_dot(self.red_dot):
+            self._damage_player("red", "blue_square")
         if self.purple_dot is not None:
-            self.blue_square.check_collision_with_dot(self.purple_dot)
+            if self.blue_square.check_collision_with_dot(self.purple_dot):
+                self._damage_player("purple", "blue_square")
 
-        # Projectile collisions
+        # Projectile collisions (check for hit point damage)
         for projectile in self.projectiles:
             if projectile.is_active:
                 projectile.check_collision_with_square(self.blue_square)
-                projectile.check_collision_with_dot(self.red_dot)
+                if projectile.check_collision_with_dot(self.red_dot):
+                    self._damage_player("red", "projectile")
                 if self.purple_dot is not None:
-                    projectile.check_collision_with_dot(self.purple_dot)
+                    if projectile.check_collision_with_dot(self.purple_dot):
+                        self._damage_player("purple", "projectile")
 
         # Player vs player collision
         if self.purple_dot is not None:
@@ -135,6 +149,10 @@ class GameEngine:
         collision_distance = self.red_dot.radius + self.purple_dot.radius
 
         if distance <= collision_distance:
+            # Apply hit point damage first before separation
+            self._damage_player("red", "player_collision")
+            self._damage_player("purple", "player_collision")
+
             # Calculate collision normal (from red to purple)
             if distance > 0:
                 normal_x = (
@@ -223,6 +241,66 @@ class GameEngine:
         # Apply gravity from purple gravitational dot
         self.purple_gravity_dot.apply_gravity_to_object(self.blue_square)
 
+    def _damage_player(self, player, damage_source):
+        """Apply damage to a player if not on cooldown."""
+        if player == "red" and self.red_dot_collision_cooldown <= 0:
+            self.red_player_hp -= HIT_POINT_DAMAGE
+            self.red_dot_collision_cooldown = self.collision_cooldown_frames
+            print(f"Red player hit by {damage_source}! HP: {self.red_player_hp}")
+        elif player == "purple" and self.purple_dot_collision_cooldown <= 0:
+            self.purple_player_hp -= HIT_POINT_DAMAGE
+            self.purple_dot_collision_cooldown = self.collision_cooldown_frames
+            print(f"Purple player hit by {damage_source}! HP: {self.purple_player_hp}")
+
+    def _update_hit_points(self):
+        """Update hit point system and check for boundary collisions."""
+        # Update collision cooldowns
+        if self.red_dot_collision_cooldown > 0:
+            self.red_dot_collision_cooldown -= 1
+        if self.purple_dot_collision_cooldown > 0:
+            self.purple_dot_collision_cooldown -= 1
+
+        # Check for boundary collisions
+        self._check_boundary_collisions()
+
+        # Check for HP depletion
+        if self.red_player_hp <= 0:
+            self.purple_player_score += 1
+            self._reset_player_hp()
+            print(
+                f"Purple player scores from red HP depletion! Score: {self.purple_player_score}"
+            )
+        elif self.purple_player_hp <= 0:
+            self.red_player_score += 1
+            self._reset_player_hp()
+            print(
+                f"Red player scores from purple HP depletion! Score: {self.red_player_score}"
+            )
+
+    def _check_boundary_collisions(self):
+        """Check if players hit the circular boundary and apply damage."""
+        # Check red player boundary collision
+        red_distance_from_center = math.sqrt(
+            self.red_dot.virtual_x**2 + self.red_dot.virtual_y**2
+        )
+        if red_distance_from_center + self.red_dot.radius >= GRID_RADIUS:
+            self._damage_player("red", "boundary")
+
+        # Check purple player boundary collision
+        if self.purple_dot is not None:
+            purple_distance_from_center = math.sqrt(
+                self.purple_dot.virtual_x**2 + self.purple_dot.virtual_y**2
+            )
+            if purple_distance_from_center + self.purple_dot.radius >= GRID_RADIUS:
+                self._damage_player("purple", "boundary")
+
+    def _reset_player_hp(self):
+        """Reset both players' HP to initial values."""
+        self.red_player_hp = INITIAL_HIT_POINTS
+        self.purple_player_hp = INITIAL_HIT_POINTS
+        self.red_dot_collision_cooldown = 0
+        self.purple_dot_collision_cooldown = 0
+
     def _update_scoring(self):
         """Update scoring based on blue square position relative to static circles."""
         # Import here to avoid circular imports
@@ -265,16 +343,22 @@ class GameEngine:
         else:
             self.purple_circle_overlap_timer = 0
 
-        # Check for scoring conditions
+        # Check for scoring conditions (award 2 points for static circle scoring)
         if self.red_circle_overlap_timer >= SCORE_OVERLAP_FRAMES:
-            self.red_player_score += 1
+            self.red_player_score += STATIC_CIRCLE_SCORE_POINTS
             self._respawn_blue_square()
             self.red_circle_overlap_timer = 0
+            print(
+                f"Red player scores {STATIC_CIRCLE_SCORE_POINTS} points! Total: {self.red_player_score}"
+            )
 
         if self.purple_circle_overlap_timer >= SCORE_OVERLAP_FRAMES:
-            self.purple_player_score += 1
+            self.purple_player_score += STATIC_CIRCLE_SCORE_POINTS
             self._respawn_blue_square()
             self.purple_circle_overlap_timer = 0
+            print(
+                f"Purple player scores {STATIC_CIRCLE_SCORE_POINTS} points! Total: {self.purple_player_score}"
+            )
 
     def _respawn_blue_square(self):
         """Respawn the blue square at the center of the grid."""
@@ -291,3 +375,11 @@ class GameEngine:
     def get_purple_player_score(self):
         """Get the purple player's score."""
         return self.purple_player_score
+
+    def get_red_player_hp(self):
+        """Get the red player's hit points."""
+        return self.red_player_hp
+
+    def get_purple_player_hp(self):
+        """Get the purple player's hit points."""
+        return self.purple_player_hp

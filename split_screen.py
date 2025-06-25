@@ -120,10 +120,14 @@ class SplitScreenView(QWidget):
         else:
             painter.drawText(10, 25, "Player 2 (Purple) - WASD + Ctrl")
 
-        # Draw score display
+        # Draw status display (score and hit points)
         red_score = self.game_engine.get_red_player_score()
         purple_score = self.game_engine.get_purple_player_score()
-        Renderer.draw_score(painter, red_score, purple_score, width, height)
+        red_hp = self.game_engine.get_red_player_hp()
+        purple_hp = self.game_engine.get_purple_player_hp()
+        Renderer.draw_status_display(
+            painter, red_score, purple_score, red_hp, purple_hp, width, height
+        )
 
         painter.restore()
 

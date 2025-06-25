@@ -710,7 +710,7 @@ class Renderer:
         score_y = view_height - SCORE_POSITION_Y_OFFSET
 
         # Single player mode vs multiplayer mode
-        if purple_score is None or purple_score == 0:
+        if purple_score is None:
             # Single player mode - just show red score
             score_text = f"Score: {red_score}"
             text_width = painter.fontMetrics().horizontalAdvance(score_text)
@@ -733,3 +733,78 @@ class Renderer:
                 QPen(QColor(128, 0, 128), 2)
             )  # Purple color for purple score
             painter.drawText(purple_x, score_y, purple_text)
+
+    @staticmethod
+    def draw_status_display(
+        painter,
+        red_score,
+        purple_score,
+        red_hp,
+        purple_hp,
+        view_width=WINDOW_WIDTH,
+        view_height=WINDOW_HEIGHT,
+    ):
+        """
+        Draw score and hit points display at the bottom of the view.
+
+        Args:
+            painter: QPainter instance
+            red_score: Red player's score
+            purple_score: Purple player's score
+            red_hp: Red player's hit points
+            purple_hp: Purple player's hit points
+            view_width: Width of the view
+            view_height: Height of the view
+        """
+        from PyQt6.QtGui import QFont
+
+        # Set up font and pen
+        font = QFont()
+        font.setPointSize(SCORE_TEXT_SIZE)
+        painter.setFont(font)
+
+        # Calculate positions
+        score_y = (
+            view_height - SCORE_POSITION_Y_OFFSET - 20
+        )  # Move up to make room for HP
+        hp_y = view_height - SCORE_POSITION_Y_OFFSET
+
+        # Single player mode vs multiplayer mode
+        if purple_score is None:
+            # Single player mode - show red score and HP
+            score_text = f"Score: {red_score}"
+            hp_text = f"HP: {red_hp}"
+
+            score_width = painter.fontMetrics().horizontalAdvance(score_text)
+            hp_width = painter.fontMetrics().horizontalAdvance(hp_text)
+
+            score_x = (view_width - score_width) // 2
+            hp_x = (view_width - hp_width) // 2
+
+            painter.setPen(QPen(QColor(*SCORE_TEXT_COLOR), 2))
+            painter.drawText(score_x, score_y, score_text)
+            painter.drawText(hp_x, hp_y, hp_text)
+        else:
+            # Multiplayer mode - show both scores and HP
+            red_score_text = f"Red: {red_score}"
+            red_hp_text = f"HP: {red_hp}"
+            purple_score_text = f"Purple: {purple_score}"
+            purple_hp_text = f"HP: {purple_hp}"
+
+            # Position red player info on left
+            red_x = 10
+            painter.setPen(QPen(QColor(200, 0, 0), 2))  # Red color
+            painter.drawText(red_x, score_y, red_score_text)
+            painter.drawText(red_x, hp_y, red_hp_text)
+
+            # Position purple player info on right
+            purple_score_width = painter.fontMetrics().horizontalAdvance(
+                purple_score_text
+            )
+            purple_hp_width = painter.fontMetrics().horizontalAdvance(purple_hp_text)
+            purple_score_x = view_width - purple_score_width - 10
+            purple_hp_x = view_width - purple_hp_width - 10
+
+            painter.setPen(QPen(QColor(128, 0, 128), 2))  # Purple color
+            painter.drawText(purple_score_x, score_y, purple_score_text)
+            painter.drawText(purple_hp_x, hp_y, purple_hp_text)

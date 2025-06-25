@@ -49,6 +49,9 @@ Verifies that the split-screen views are correctly arranged with purple player o
 ### `test_gravitational_force_increase.py`
 Demonstrates the increased gravitational force strength and compares force magnitudes at different distances.
 
+### `test_hit_points_system.py`
+Tests the complete hit points system including damage from collisions, boundary hits, HP depletion scoring, and 2-point static circle scoring.
+
 ## Demo Scripts
 
 ### `demo_off_screen_indicator.py`
