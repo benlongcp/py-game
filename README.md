@@ -34,22 +34,48 @@ The application has been modularized into the following components:
 - **Visual feedback**: Momentum indicator shows direction and speed
 - **Camera system**: View follows the red dot with coordinate transformation
 - **Triangular grid**: Procedurally generated dot pattern with vignette effect
+- **Multi-player support**: Two players can play simultaneously with split-screen view
+- **Projectile system**: Players can shoot projectiles that interact with all objects
+- **Off-screen indicators**: Blue arrows point toward the blue square when it's outside view
+- **Newtonian physics**: All interactions follow conservation of momentum
 
 ## Usage
 
+### Single Player Mode
 Run the application using:
-
 ```bash
 python main.py
 ```
 
+### Multi-Player Split-Screen Mode
+For two-player split-screen mode, see `MULTIPLAYER_README.md` for detailed instructions.
+
+### Demo and Testing
+```bash
+# Test off-screen indicators
+python tests/demo_off_screen_indicator.py
+
+# Run other tests
+python tests/test_name.py
+```
+
 ### Controls
 
+**Single Player Mode:**
 - **Arrow Keys**: Move the red dot
-- **Movement Physics**: 
-  - Acceleration while keys are held
-  - Momentum continues when keys are released
-  - Deceleration brings dot to stop over ~10 seconds
+- **Space**: Shoot projectiles
+
+**Multi-Player Mode (Split-Screen):**
+- **Player 1 (Red)**: Arrow Keys + Space
+- **Player 2 (Purple)**: WASD + Ctrl
+
+### Movement Physics
+- Acceleration while keys are held
+- Momentum continues when keys are released
+- Deceleration brings dot to stop over ~10 seconds
+
+### Off-Screen Indicators
+When the blue square is outside a player's view, a small blue arrow appears on the edge of the screen pointing in the direction of the blue square. This helps players locate the target when it moves off-screen.
 
 ## Configuration
 

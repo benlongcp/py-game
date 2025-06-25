@@ -106,6 +106,11 @@ class SplitScreenView(QWidget):
                 painter, self.game_engine.red_dot, camera_x, camera_y
             )
 
+        # Draw off-screen indicator for blue square if it's not visible
+        Renderer.draw_off_screen_indicator(
+            painter, self.game_engine.blue_square, camera_x, camera_y, width, height
+        )
+
         # Draw player labels
         painter.setPen(QPen(QColor(0, 0, 0), 2))
         if player_number == 1:

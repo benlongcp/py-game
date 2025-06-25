@@ -108,6 +108,11 @@ class TopographicalPlane(QWidget):
                     self.game_engine.red_dot.radius * 2,
                 )
 
+        # Draw off-screen indicator for blue square if it's not visible
+        Renderer.draw_off_screen_indicator(
+            painter, self.game_engine.blue_square, camera_x, camera_y
+        )
+
     def keyPressEvent(self, event):
         """Handle key press events."""
         key = event.key()

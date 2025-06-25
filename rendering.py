@@ -457,3 +457,124 @@ class Renderer:
                 Renderer._draw_momentum_indicator(
                     painter, screen_x, screen_y, momentum_info
                 )
+
+    @staticmethod
+    def draw_off_screen_indicator(
+        painter,
+        square,
+        camera_x,
+        camera_y,
+        view_width=WINDOW_WIDTH,
+        view_height=WINDOW_HEIGHT,
+    ):
+        """
+        Draw an off-screen indicator arrow when the blue square is outside the view.
+
+        Args:
+            painter: QPainter instance
+            square: BlueSquare instance
+            camera_x, camera_y: Camera position in world coordinates
+            view_width, view_height: Dimensions of the view area
+        """
+        if square.is_visible(camera_x, camera_y):
+            return  # Don't draw indicator if square is visible
+
+        # Calculate the direction from camera (player) to blue square
+        dx = square.x - camera_x
+        dy = square.y - camera_y
+
+        # Calculate angle from camera to square
+        angle = math.atan2(dy, dx)
+
+        # Define margins from the edge of the screen
+        margin = 20
+        arrow_size = 12
+
+        # Calculate where the arrow should be positioned on the edge
+        center_x = view_width / 2
+        center_y = view_height / 2
+
+        # Convert angle to screen edge position
+        # We need to determine which edge the arrow should be on
+        edge_x = center_x
+        edge_y = center_y
+
+        # Normalize direction vector
+        distance = math.sqrt(dx * dx + dy * dy)
+        if distance > 0:
+            norm_dx = dx / distance
+            norm_dy = dy / distance
+
+            # Calculate intersection with screen boundaries
+            # Check intersection with vertical edges (left/right)
+            if norm_dx != 0:
+                t_vertical = (view_width / 2 - margin) / abs(norm_dx)
+                y_at_vertical = center_y + norm_dy * t_vertical * (
+                    1 if norm_dx > 0 else -1
+                )
+
+                if abs(y_at_vertical - center_y) <= view_height / 2 - margin:
+                    # Arrow goes on left or right edge
+                    edge_x = center_x + (view_width / 2 - margin) * (
+                        1 if norm_dx > 0 else -1
+                    )
+                    edge_y = y_at_vertical
+                else:
+                    # Arrow goes on top or bottom edge
+                    t_horizontal = (view_height / 2 - margin) / abs(norm_dy)
+                    edge_x = center_x + norm_dx * t_horizontal * (
+                        1 if norm_dy > 0 else -1
+                    )
+                    edge_y = center_y + (view_height / 2 - margin) * (
+                        1 if norm_dy > 0 else -1
+                    )
+            else:
+                # Vertical line case
+                edge_x = center_x
+                edge_y = center_y + (view_height / 2 - margin) * (
+                    1 if norm_dy > 0 else -1
+                )
+
+        # Draw the arrow indicator
+        painter.save()
+
+        # Set up pen and brush for the arrow
+        painter.setPen(QPen(QColor(*SQUARE_COLOR), 3))
+        painter.setBrush(QBrush(QColor(*SQUARE_COLOR)))
+
+        # Create arrow polygon pointing in the direction of the square
+        arrow_points = []
+
+        # Arrow pointing towards the square
+        # Base of arrow (back end)
+        base_angle1 = angle + math.pi - 0.5
+        base_angle2 = angle + math.pi + 0.5
+
+        # Arrow tip (front end)
+        tip_x = edge_x + math.cos(angle) * arrow_size
+        tip_y = edge_y + math.sin(angle) * arrow_size
+
+        # Arrow base points
+        base_x1 = edge_x + math.cos(base_angle1) * arrow_size * 0.6
+        base_y1 = edge_y + math.sin(base_angle1) * arrow_size * 0.6
+        base_x2 = edge_x + math.cos(base_angle2) * arrow_size * 0.6
+        base_y2 = edge_y + math.sin(base_angle2) * arrow_size * 0.6
+
+        # Create arrow polygon
+        arrow_polygon = QPolygonF(
+            [
+                QPointF(tip_x, tip_y),  # Arrow tip
+                QPointF(base_x1, base_y1),  # Arrow base left
+                QPointF(base_x2, base_y2),  # Arrow base right
+            ]
+        )
+
+        # Draw the arrow
+        painter.drawPolygon(arrow_polygon)
+
+        # Draw a small circle at the base to make it more visible
+        painter.setPen(QPen(QColor(*SQUARE_OUTLINE_COLOR), 2))
+        painter.setBrush(QBrush(QColor(*SQUARE_COLOR)))
+        painter.drawEllipse(int(edge_x - 4), int(edge_y - 4), 8, 8)
+
+        painter.restore()

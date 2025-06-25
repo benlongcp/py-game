@@ -25,6 +25,14 @@ Verifies that all rendering functions are working correctly and tests the render
 ### `test_split_screen_multiplayer.py`
 Tests the split-screen functionality and ensures both players can be rendered correctly in the dual-view system.
 
+### `test_off_screen_indicator.py`
+Tests the off-screen indicator logic that shows blue arrows pointing toward the blue square when it's outside a player's view.
+
+## Demo Scripts
+
+### `demo_off_screen_indicator.py`
+Interactive demo showcasing the off-screen indicator feature. Move players around to see blue arrows pointing toward the off-screen blue square.
+
 ## Debug Scripts
 
 ### `debug_collision.py`
