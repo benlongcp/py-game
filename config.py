@@ -22,6 +22,9 @@ DOT_RADIUS = 5
 DOT_COLOR = (255, 0, 0)  # Red
 DOT_MASS = 5.0  # Increased from 1.0 to 5.0 for more impactful collisions
 
+# Purple dot settings (Player 2)
+PURPLE_DOT_COLOR = (128, 0, 128)  # Purple
+
 # Red dot physics
 ACCELERATION = 0.1  # How quickly velocity increases when keys are held
 DECELERATION = (

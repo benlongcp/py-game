@@ -301,3 +301,159 @@ class Renderer:
                 projectile.radius * 2,
                 projectile.radius * 2,
             )
+
+    @staticmethod
+    def draw_purple_dot(painter, dot, camera_x, camera_y):
+        """
+        Draw the purple dot with momentum indicator.
+
+        Args:
+            painter: QPainter instance
+            dot: PurpleDot instance
+            camera_x, camera_y: Camera position in world coordinates
+        """
+        # Get screen position relative to camera
+        screen_x = dot.virtual_x - (camera_x - WINDOW_CENTER_X)
+        screen_y = dot.virtual_y - (camera_y - WINDOW_CENTER_Y)
+
+        # Only draw if visible on screen
+        if (
+            screen_x + dot.radius >= 0
+            and screen_x - dot.radius <= WINDOW_WIDTH
+            and screen_y + dot.radius >= 0
+            and screen_y - dot.radius <= WINDOW_HEIGHT
+        ):
+
+            # Draw the dot in purple
+            purple_color = (128, 0, 128)  # Purple
+            painter.setPen(QPen(QColor(*purple_color), 2))
+            painter.setBrush(QBrush(QColor(*purple_color)))
+            painter.drawEllipse(
+                int(screen_x - dot.radius),
+                int(screen_y - dot.radius),
+                dot.radius * 2,
+                dot.radius * 2,
+            )
+
+            # Draw momentum indicator if moving
+            momentum_info = dot.get_momentum_info()
+            if momentum_info:
+                Renderer._draw_purple_momentum_indicator(
+                    painter, screen_x, screen_y, momentum_info
+                )
+
+    @staticmethod
+    def _draw_purple_momentum_indicator(painter, center_x, center_y, momentum_info):
+        """
+        Draw the triangular momentum indicator for purple dot.
+
+        Args:
+            painter: QPainter instance
+            center_x, center_y: Center position for the indicator
+            momentum_info: Dictionary with angle, size, and speed information
+        """
+        angle = momentum_info["angle"]
+        triangle_size = momentum_info["size"]
+        speed = momentum_info["speed"]
+
+        # Calculate color intensity based on speed
+        intensity = min(255, int(100 + (speed / MAX_SPEED) * 155))
+
+        # Set triangle color (purple with varying intensity)
+        painter.setPen(QPen(QColor(intensity, 0, intensity), 1))
+        painter.setBrush(QBrush(QColor(intensity, 0, intensity, 150)))
+
+        # Calculate triangle points (identical to red dot behavior)
+        triangle_distance = DOT_RADIUS + MOMENTUM_DISTANCE
+
+        # Tip of triangle (pointing in direction of movement)
+        tip_x = center_x + math.cos(angle) * (triangle_distance + triangle_size)
+        tip_y = center_y + math.sin(angle) * (triangle_distance + triangle_size)
+
+        # Base points of triangle
+        base_angle1 = angle + (2 * math.pi / 3)  # 120 degrees from tip
+        base_angle2 = angle - (2 * math.pi / 3)  # 120 degrees from tip (other side)
+
+        base1_x = center_x + math.cos(base_angle1) * triangle_distance
+        base1_y = center_y + math.sin(base_angle1) * triangle_distance
+        base2_x = center_x + math.cos(base_angle2) * triangle_distance
+        base2_y = center_y + math.sin(base_angle2) * triangle_distance
+
+        # Create and draw triangle (using float precision like red dot)
+        triangle = QPolygonF(
+            [
+                QPointF(tip_x, tip_y),
+                QPointF(base1_x, base1_y),
+                QPointF(base2_x, base2_y),
+            ]
+        )
+        painter.drawPolygon(triangle)
+
+    @staticmethod
+    def draw_purple_dot_centered(painter, dot):
+        """
+        Draw the purple dot at screen center with momentum indicator.
+
+        Args:
+            painter: QPainter instance
+            dot: PurpleDot instance
+        """
+        # Get screen position (always at center)
+        screen_x, screen_y = WINDOW_CENTER_X, WINDOW_CENTER_Y
+
+        # Draw the dot in purple
+        purple_color = (128, 0, 128)  # Purple
+        painter.setPen(QPen(QColor(*purple_color), 2))
+        painter.setBrush(QBrush(QColor(*purple_color)))
+        painter.drawEllipse(
+            int(screen_x - dot.radius),
+            int(screen_y - dot.radius),
+            dot.radius * 2,
+            dot.radius * 2,
+        )
+
+        # Draw momentum indicator if moving
+        momentum_info = dot.get_momentum_info()
+        if momentum_info:
+            Renderer._draw_purple_momentum_indicator(
+                painter, screen_x, screen_y, momentum_info
+            )
+
+    @staticmethod
+    def draw_red_dot_world(painter, dot, camera_x, camera_y):
+        """
+        Draw the red dot in world coordinates with momentum indicator.
+
+        Args:
+            painter: QPainter instance
+            dot: RedDot instance
+            camera_x, camera_y: Camera position in world coordinates
+        """
+        # Get screen position relative to camera
+        screen_x = dot.virtual_x - (camera_x - WINDOW_CENTER_X)
+        screen_y = dot.virtual_y - (camera_y - WINDOW_CENTER_Y)
+
+        # Only draw if visible on screen
+        if (
+            screen_x + dot.radius >= 0
+            and screen_x - dot.radius <= WINDOW_WIDTH
+            and screen_y + dot.radius >= 0
+            and screen_y - dot.radius <= WINDOW_HEIGHT
+        ):
+
+            # Draw the dot in red
+            painter.setPen(QPen(QColor(*DOT_COLOR), 2))
+            painter.setBrush(QBrush(QColor(*DOT_COLOR)))
+            painter.drawEllipse(
+                int(screen_x - dot.radius),
+                int(screen_y - dot.radius),
+                dot.radius * 2,
+                dot.radius * 2,
+            )
+
+            # Draw momentum indicator if moving
+            momentum_info = dot.get_momentum_info()
+            if momentum_info:
+                Renderer._draw_momentum_indicator(
+                    painter, screen_x, screen_y, momentum_info
+                )

@@ -486,3 +486,16 @@ class Projectile:
             return True
 
         return False
+
+
+class PurpleDot(RedDot):
+    """Represents the second player's purple dot - inherits from RedDot."""
+
+    def __init__(self, x=INITIAL_DOT_X, y=INITIAL_DOT_Y):
+        super().__init__(x, y)
+        # Purple dot has the same properties as red dot but different color
+        # Color is handled in the rendering layer
+
+    def get_color(self):
+        """Return the purple color for this dot."""
+        return (128, 0, 128)  # Purple color
