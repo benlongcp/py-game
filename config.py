@@ -100,3 +100,18 @@ STATIC_RED_CIRCLE_COLOR = (255, 50, 50)  # Red circle
 STATIC_RED_CIRCLE_OUTLINE = (200, 0, 0)  # Darker red outline
 STATIC_PURPLE_CIRCLE_COLOR = (200, 50, 255)  # Purple circle
 STATIC_PURPLE_CIRCLE_OUTLINE = (150, 0, 200)  # Darker purple outline
+
+# Gravitational dots inside static circles
+GRAVITY_DOT_RADIUS = DOT_RADIUS * 1.5  # 1.5x the size of player dots
+GRAVITY_DOT_COLOR = (100, 100, 100, 100)  # Semi-transparent gray (with alpha)
+GRAVITY_DOT_OUTLINE = (80, 80, 80, 150)  # Slightly more opaque outline
+
+# Gravitational physics
+GRAVITY_STRENGTH = 2.0  # Force multiplier for gravitational pull
+GRAVITY_MAX_DISTANCE = (
+    STATIC_CIRCLE_RADIUS
+    * 2  # Circle radius + one radius extension beyond boundary (total 2x radius)
+)
+GRAVITY_FALLOFF_POWER = (
+    1.5  # How quickly gravity falls off with distance (higher = more focused)
+)

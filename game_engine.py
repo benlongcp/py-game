@@ -6,7 +6,14 @@ This allows multiple windows to reference the same game state.
 
 from PyQt6.QtCore import Qt
 from config import *
-from objects import RedDot, BlueSquare, Projectile, PurpleDot
+from objects import (
+    RedDot,
+    BlueSquare,
+    Projectile,
+    PurpleDot,
+    RedGravitationalDot,
+    PurpleGravitationalDot,
+)
 from physics import PhysicsEngine
 
 
@@ -19,6 +26,10 @@ class GameEngine:
         self.purple_dot = None  # Will be created when second player joins
         self.blue_square = BlueSquare()
         self.projectiles = []  # List to hold active projectiles
+
+        # Gravitational dots for physics effects
+        self.red_gravity_dot = RedGravitationalDot()
+        self.purple_gravity_dot = PurpleGravitationalDot()
 
         # Input states for both players
         self.player1_keys = set()  # Arrow keys + Space
@@ -71,6 +82,9 @@ class GameEngine:
         if self.purple_dot is not None:
             self.purple_dot.update_physics()
         self.blue_square.update_physics()
+
+        # Apply gravitational forces to the blue square
+        self._apply_gravitational_forces()
 
         # Update projectile physics
         for projectile in self.projectiles[
@@ -189,3 +203,11 @@ class GameEngine:
             self.player2_keys.add(key)
         else:
             self.player2_keys.discard(key)
+
+    def _apply_gravitational_forces(self):
+        """Apply gravitational forces from the gravitational dots to the blue square."""
+        # Apply gravity from red gravitational dot
+        self.red_gravity_dot.apply_gravity_to_object(self.blue_square)
+
+        # Apply gravity from purple gravitational dot
+        self.purple_gravity_dot.apply_gravity_to_object(self.blue_square)

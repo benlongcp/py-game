@@ -627,3 +627,56 @@ class Renderer:
             int(circle.radius * 2),
             int(circle.radius * 2),
         )
+
+    @staticmethod
+    def draw_gravitational_dots(painter, camera_x, camera_y):
+        """
+        Draw the gravitational dots inside the static circles.
+
+        Args:
+            painter: QPainter instance
+            camera_x, camera_y: Camera position in world coordinates
+        """
+        # Import here to avoid circular imports
+        from objects import RedGravitationalDot, PurpleGravitationalDot
+
+        # Create the gravitational dots
+        red_gravity_dot = RedGravitationalDot()
+        purple_gravity_dot = PurpleGravitationalDot()
+
+        # Draw red gravitational dot if visible
+        if red_gravity_dot.is_visible(camera_x, camera_y):
+            Renderer._draw_gravitational_dot(
+                painter, red_gravity_dot, camera_x, camera_y
+            )
+
+        # Draw purple gravitational dot if visible
+        if purple_gravity_dot.is_visible(camera_x, camera_y):
+            Renderer._draw_gravitational_dot(
+                painter, purple_gravity_dot, camera_x, camera_y
+            )
+
+    @staticmethod
+    def _draw_gravitational_dot(painter, gravity_dot, camera_x, camera_y):
+        """
+        Draw a single gravitational dot with transparency.
+
+        Args:
+            painter: QPainter instance
+            gravity_dot: GravitationalDot instance
+            camera_x, camera_y: Camera position in world coordinates
+        """
+        # Get screen position
+        screen_x, screen_y = gravity_dot.get_screen_position(camera_x, camera_y)
+
+        # Set up pen and brush with transparency
+        painter.setPen(QPen(QColor(*GRAVITY_DOT_OUTLINE), 2))
+        painter.setBrush(QBrush(QColor(*GRAVITY_DOT_COLOR)))
+
+        # Draw the gravitational dot
+        painter.drawEllipse(
+            int(screen_x - gravity_dot.radius),
+            int(screen_y - gravity_dot.radius),
+            int(gravity_dot.radius * 2),
+            int(gravity_dot.radius * 2),
+        )

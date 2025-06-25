@@ -559,3 +559,83 @@ class StaticPurpleCircle(StaticCircle):
             STATIC_PURPLE_CIRCLE_COLOR,
             STATIC_PURPLE_CIRCLE_OUTLINE,
         )
+
+
+class GravitationalDot:
+    """Represents a gravitational dot that pulls objects toward its center."""
+
+    def __init__(self, x, y):
+        """
+        Initialize a gravitational dot.
+
+        Args:
+            x, y: World position of the gravitational dot center
+        """
+        self.x = float(x)
+        self.y = float(y)
+        self.radius = GRAVITY_DOT_RADIUS
+        self.strength = GRAVITY_STRENGTH
+        self.max_distance = GRAVITY_MAX_DISTANCE
+
+    def get_screen_position(self, camera_x, camera_y):
+        """Get the screen position based on camera position."""
+        screen_x = self.x - (camera_x - WINDOW_CENTER_X)
+        screen_y = self.y - (camera_y - WINDOW_CENTER_Y)
+        return screen_x, screen_y
+
+    def is_visible(self, camera_x, camera_y):
+        """Check if the gravitational dot is visible on screen."""
+        screen_x, screen_y = self.get_screen_position(camera_x, camera_y)
+
+        return (
+            screen_x + self.radius >= 0
+            and screen_x - self.radius <= WINDOW_WIDTH
+            and screen_y + self.radius >= 0
+            and screen_y - self.radius <= WINDOW_HEIGHT
+        )
+
+    def apply_gravity_to_object(self, obj):
+        """
+        Apply gravitational force to an object if it's within range.
+
+        Args:
+            obj: Object with x, y, velocity_x, velocity_y attributes
+
+        Returns:
+            bool: True if gravity was applied, False otherwise
+        """
+        # Calculate distance from gravitational dot to object
+        dx = self.x - obj.x
+        dy = self.y - obj.y
+        distance = math.sqrt(dx * dx + dy * dy)
+
+        # Only apply gravity if object is within the gravitational field
+        if distance > self.max_distance or distance < 0.1:  # Avoid division by zero
+            return False
+
+        # Calculate gravitational force (inverse square law with configurable falloff)
+        force_magnitude = self.strength / (distance**GRAVITY_FALLOFF_POWER)
+
+        # Normalize direction vector
+        force_x = (dx / distance) * force_magnitude
+        force_y = (dy / distance) * force_magnitude
+
+        # Apply force to object's velocity
+        obj.velocity_x += force_x
+        obj.velocity_y += force_y
+
+        return True
+
+
+class RedGravitationalDot(GravitationalDot):
+    """Gravitational dot positioned at the center of the red static circle."""
+
+    def __init__(self):
+        super().__init__(STATIC_RED_CIRCLE_X, STATIC_RED_CIRCLE_Y)
+
+
+class PurpleGravitationalDot(GravitationalDot):
+    """Gravitational dot positioned at the center of the purple static circle."""
+
+    def __init__(self):
+        super().__init__(STATIC_PURPLE_CIRCLE_X, STATIC_PURPLE_CIRCLE_Y)

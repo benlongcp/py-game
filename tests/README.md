@@ -31,10 +31,22 @@ Tests the off-screen indicator logic that shows blue arrows pointing toward the 
 ### `test_static_circle_sizes.py`
 Tests the static circle size calculations and positioning to ensure they fit within the grid boundaries.
 
+### `test_gravitational_physics.py`
+Tests the gravitational physics system that pulls the blue square toward the center of static circles when overlapping.
+
+### `test_extended_gravitational_range.py`
+Demonstrates the extended gravitational field range that now affects the blue square when adjacent to static circles.
+
+### `test_gravitational_field_boundaries.py`
+Verifies that the gravitational field extends exactly one radius distance beyond the static circle boundaries.
+
 ## Demo Scripts
 
 ### `demo_off_screen_indicator.py`
 Interactive demo showcasing the off-screen indicator feature. Move players around to see blue arrows pointing toward the off-screen blue square.
+
+### `demo_gravitational_physics.py`
+Interactive demo showcasing the gravitational dots feature. Shoot the blue square toward static circles to see gravitational pull effects.
 
 ## Debug Scripts
 

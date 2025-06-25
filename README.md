@@ -38,6 +38,8 @@ The application has been modularized into the following components:
 - **Projectile system**: Players can shoot projectiles that interact with all objects
 - **Off-screen indicators**: Blue arrows point toward the blue square when it's outside view
 - **Newtonian physics**: All interactions follow conservation of momentum
+- **Static decorative circles**: Red and purple circles positioned on opposite ends of the grid
+- **Gravitational physics**: Blue square gets pulled toward gravitational dots when overlapping static circles
 
 ## Usage
 
@@ -76,6 +78,15 @@ python tests/test_name.py
 
 ### Off-Screen Indicators
 When the blue square is outside a player's view, a small blue arrow appears on the edge of the screen pointing in the direction of the blue square. This helps players locate the target when it moves off-screen.
+
+### Gravitational Physics
+- Two large static circles (red and purple) are positioned on opposite ends of the grid
+- Each static circle contains a transparent gravitational dot at its center
+- Gravitational field extends beyond the static circle boundary by a distance equal to the circle's radius
+- Total gravitational range is 2x the static circle radius (~94 pixels) for extensive strategic influence
+- When the blue square enters the gravitational field, it gets pulled toward the gravitational dot
+- Gravitational force decreases with distance from the center, creating realistic orbital mechanics
+- Use projectiles to push the blue square into gravitational fields and observe the effects
 
 ## Configuration
 
