@@ -53,7 +53,7 @@ class GameEngine:
         self.collision_cooldown_frames = 30  # 0.5 seconds at 60 FPS
 
         # Input states for both players
-        self.player1_keys = set()  # Arrow keys + Space
+        self.player1_keys = set()  # Arrow keys + Enter
         self.player2_keys = set()  # WASD + Ctrl
 
     def create_purple_dot(self):
@@ -130,10 +130,10 @@ class GameEngine:
         for projectile in self.projectiles:
             if projectile.is_active:
                 projectile.check_collision_with_square(self.blue_square)
-                if projectile.check_collision_with_dot(self.red_dot):
+                if projectile.check_collision_with_dot(self.red_dot, "red"):
                     self._damage_player("red", "projectile")
                 if self.purple_dot is not None:
-                    if projectile.check_collision_with_dot(self.purple_dot):
+                    if projectile.check_collision_with_dot(self.purple_dot, "purple"):
                         self._damage_player("purple", "projectile")
 
         # Player vs player collision
@@ -246,10 +246,13 @@ class GameEngine:
         if player == "red" and self.red_dot_collision_cooldown <= 0:
             self.red_player_hp -= HIT_POINT_DAMAGE
             self.red_dot_collision_cooldown = self.collision_cooldown_frames
+            self.red_dot.trigger_hp_damage_pulse()  # Trigger yellow pulse effect
             print(f"Red player hit by {damage_source}! HP: {self.red_player_hp}")
         elif player == "purple" and self.purple_dot_collision_cooldown <= 0:
             self.purple_player_hp -= HIT_POINT_DAMAGE
             self.purple_dot_collision_cooldown = self.collision_cooldown_frames
+            if self.purple_dot is not None:
+                self.purple_dot.trigger_hp_damage_pulse()  # Trigger yellow pulse effect
             print(f"Purple player hit by {damage_source}! HP: {self.purple_player_hp}")
 
     def _update_hit_points(self):

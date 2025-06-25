@@ -23,7 +23,7 @@ def demo_gravitational_physics():
     print("- Gravitational force decreases with distance from center")
     print("")
     print("CONTROLS:")
-    print("Player 1 (Red): Arrow Keys + Space")
+    print("Player 1 (Red): Arrow Keys + Enter")
     print("Player 2 (Purple): WASD + Ctrl")
     print("")
     print("HOW TO TEST:")

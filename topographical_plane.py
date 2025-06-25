@@ -120,7 +120,7 @@ class TopographicalPlane(QWidget):
         key = event.key()
 
         if self.player_number == 1:
-            # Player 1 controls (Arrow keys + Space)
+            # Player 1 controls (Arrow keys + Enter)
             if key in [
                 Qt.Key.Key_Left,
                 Qt.Key.Key_Right,
@@ -128,7 +128,7 @@ class TopographicalPlane(QWidget):
                 Qt.Key.Key_Down,
             ]:
                 self.game_engine.set_player1_key(key, True)
-            elif key == Qt.Key.Key_Space:
+            elif key == Qt.Key.Key_Return:  # Enter key
                 self.game_engine.shoot_projectile_player1()
         else:
             # Player 2 controls (WASD + Left Ctrl)

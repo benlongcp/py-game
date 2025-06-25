@@ -3,7 +3,7 @@
 ## 🎮 Features
 
 ### **Dual-Window Multi-Player System**
-- **Player 1 (Red Dot)**: Controls with Arrow Keys + Spacebar
+- **Player 1 (Red Dot)**: Controls with Arrow Keys + Enter
 - **Player 2 (Purple Dot)**: Controls with WASD + Left Ctrl
 - Each player has their own window that follows their character
 - Both players interact in the same shared world
@@ -29,7 +29,7 @@ python main.py
 ### **Controls**
 **Player 1 (Red Dot Window):**
 - Move: Arrow Keys (↑↓←→)
-- Shoot: Spacebar
+- Shoot: Enter
 
 **Player 2 (Purple Dot Window):**
 - Move: WASD Keys

@@ -1,5 +1,6 @@
 """
-Main entry point for the Topographical Plane application.
+Main entry point for the Topographical - Move: Arrow keys
+- Shoot: Enterane application.
 Creates a shared game engine and split-screen multi-player setup.
 """
 

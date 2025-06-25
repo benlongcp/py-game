@@ -116,7 +116,7 @@ class SplitScreenView(QWidget):
         # Draw player labels
         painter.setPen(QPen(QColor(0, 0, 0), 2))
         if player_number == 1:
-            painter.drawText(10, 25, "Player 1 (Red) - Arrow Keys + Space")
+            painter.drawText(10, 25, "Player 1 (Red) - Arrow Keys + Enter")
         else:
             painter.drawText(10, 25, "Player 2 (Purple) - WASD + Ctrl")
 
@@ -135,10 +135,10 @@ class SplitScreenView(QWidget):
         """Handle key press events for both players."""
         key = event.key()
 
-        # Player 1 controls (Arrow keys + Space)
+        # Player 1 controls (Arrow keys + Enter)
         if key in [Qt.Key.Key_Left, Qt.Key.Key_Right, Qt.Key.Key_Up, Qt.Key.Key_Down]:
             self.game_engine.set_player1_key(key, True)
-        elif key == Qt.Key.Key_Space:
+        elif key == Qt.Key.Key_Return:  # Enter key
             self.game_engine.shoot_projectile_player1()
 
         # Player 2 controls (WASD + Left Ctrl)

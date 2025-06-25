@@ -65,10 +65,10 @@ python tests/test_name.py
 
 **Single Player Mode:**
 - **Arrow Keys**: Move the red dot
-- **Space**: Shoot projectiles
+- **Enter**: Shoot projectiles
 
 **Multi-Player Mode (Split-Screen):**
-- **Player 1 (Red)**: Arrow Keys + Space
+- **Player 1 (Red)**: Arrow Keys + Enter
 - **Player 2 (Purple)**: WASD + Ctrl
 
 ### Movement Physics

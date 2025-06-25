@@ -19,7 +19,7 @@ def demo_off_screen_indicator():
     print("🎯 Off-Screen Indicator Demo")
     print("=" * 50)
     print("CONTROLS:")
-    print("Player 1 (Red): Arrow Keys + Space")
+    print("Player 1 (Red): Arrow Keys + Enter")
     print("Player 2 (Purple): WASD + Ctrl")
     print("")
     print("INSTRUCTIONS:")

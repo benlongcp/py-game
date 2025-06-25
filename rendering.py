@@ -207,9 +207,15 @@ class Renderer:
         # Get screen position (always at center)
         screen_x, screen_y = dot.get_screen_position()
 
+        # Choose color based on pulse state
+        if dot.is_pulsing():
+            color = HP_DAMAGE_PULSE_COLOR  # Yellow when taking HP damage
+        else:
+            color = DOT_COLOR  # Normal red color
+
         # Draw the dot
-        painter.setPen(QPen(QColor(*DOT_COLOR), 2))
-        painter.setBrush(QBrush(QColor(*DOT_COLOR)))
+        painter.setPen(QPen(QColor(*color), 2))
+        painter.setBrush(QBrush(QColor(*color)))
         painter.drawEllipse(
             int(screen_x - dot.radius),
             int(screen_y - dot.radius),
@@ -324,8 +330,13 @@ class Renderer:
             and screen_y - dot.radius <= WINDOW_HEIGHT
         ):
 
-            # Draw the dot in purple
-            purple_color = (128, 0, 128)  # Purple
+            # Choose color based on pulse state
+            if dot.is_pulsing():
+                purple_color = HP_DAMAGE_PULSE_COLOR  # Yellow when taking HP damage
+            else:
+                purple_color = (128, 0, 128)  # Normal purple color
+
+            # Draw the dot
             painter.setPen(QPen(QColor(*purple_color), 2))
             painter.setBrush(QBrush(QColor(*purple_color)))
             painter.drawEllipse(
@@ -401,8 +412,13 @@ class Renderer:
         # Get screen position (always at center)
         screen_x, screen_y = WINDOW_CENTER_X, WINDOW_CENTER_Y
 
-        # Draw the dot in purple
-        purple_color = (128, 0, 128)  # Purple
+        # Choose color based on pulse state
+        if dot.is_pulsing():
+            purple_color = HP_DAMAGE_PULSE_COLOR  # Yellow when taking HP damage
+        else:
+            purple_color = (128, 0, 128)  # Normal purple color
+
+        # Draw the dot
         painter.setPen(QPen(QColor(*purple_color), 2))
         painter.setBrush(QBrush(QColor(*purple_color)))
         painter.drawEllipse(
@@ -441,9 +457,15 @@ class Renderer:
             and screen_y - dot.radius <= WINDOW_HEIGHT
         ):
 
-            # Draw the dot in red
-            painter.setPen(QPen(QColor(*DOT_COLOR), 2))
-            painter.setBrush(QBrush(QColor(*DOT_COLOR)))
+            # Choose color based on pulse state
+            if dot.is_pulsing():
+                color = HP_DAMAGE_PULSE_COLOR  # Yellow when taking HP damage
+            else:
+                color = DOT_COLOR  # Normal red color
+
+            # Draw the dot
+            painter.setPen(QPen(QColor(*color), 2))
+            painter.setBrush(QBrush(QColor(*color)))
             painter.drawEllipse(
                 int(screen_x - dot.radius),
                 int(screen_y - dot.radius),

@@ -27,7 +27,7 @@ def test_view_swap():
     print("✅ Split-screen created successfully")
     print("📋 Current layout:")
     print("   Left side: Player 2 (Purple) - WASD + Ctrl")
-    print("   Right side: Player 1 (Red) - Arrow Keys + Space")
+    print("   Right side: Player 1 (Red) - Arrow Keys + Enter")
     print()
     print("🎮 Player positions:")
     print(

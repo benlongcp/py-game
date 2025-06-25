@@ -26,6 +26,9 @@ class RedDot:
         self.acceleration_x = 0.0
         self.acceleration_y = 0.0
 
+        # Visual effects
+        self.pulse_timer = 0  # Timer for HP damage pulse effect
+
     def update_physics(self):
         """Update velocity and position based on current acceleration."""
         self.velocity_x, self.velocity_y = PhysicsEngine.apply_momentum_physics(
@@ -54,6 +57,10 @@ class RedDot:
         else:
             self.virtual_x = new_x
             self.virtual_y = new_y
+
+        # Update pulse timer
+        if self.pulse_timer > 0:
+            self.pulse_timer -= 1
 
     def get_screen_position(self):
         """Get the screen position (always at center since camera follows dot)."""
@@ -101,8 +108,18 @@ class RedDot:
 
         # Create projectile at red dot's position
         return Projectile(
-            self.virtual_x, self.virtual_y, projectile_vel_x, projectile_vel_y
+            self.virtual_x, self.virtual_y, projectile_vel_x, projectile_vel_y, "red"
         )
+
+    def trigger_hp_damage_pulse(self):
+        """Trigger the visual pulse effect when HP damage occurs."""
+        self.pulse_timer = (
+            SQUARE_PULSE_DURATION  # Reuse the same duration as square pulse
+        )
+
+    def is_pulsing(self):
+        """Check if the dot is currently showing the HP damage pulse effect."""
+        return self.pulse_timer > 0
 
 
 class BlueSquare:
@@ -293,9 +310,9 @@ class BlueSquare:
 
 
 class Projectile:
-    """Represents a green projectile shot by the red dot."""
+    """Represents a green projectile shot by a player."""
 
-    def __init__(self, x, y, velocity_x, velocity_y):
+    def __init__(self, x, y, velocity_x, velocity_y, owner_id="red"):
         # Position (world coordinates)
         self.x = float(x)
         self.y = float(y)
@@ -308,6 +325,7 @@ class Projectile:
 
         # State
         self.is_active = True
+        self.owner_id = owner_id  # "red" or "purple" - who fired this projectile
 
     def update_physics(self):
         """Update projectile position."""
@@ -428,17 +446,22 @@ class Projectile:
 
         return False
 
-    def check_collision_with_dot(self, dot):
+    def check_collision_with_dot(self, dot, dot_id="red"):
         """
-        Check collision with the red dot and apply Newtonian physics response.
+        Check collision with a dot and apply Newtonian physics response.
 
         Args:
-            dot: RedDot instance
+            dot: RedDot or PurpleDot instance
+            dot_id: "red" or "purple" - which player this dot belongs to
 
         Returns:
             bool: True if collision occurred
         """
         if not self.is_active:
+            return False
+
+        # Prevent self-collision: projectile doesn't collide with the player who fired it
+        if self.owner_id == dot_id:
             return False
 
         # Check for circle-circle collision
@@ -499,6 +522,33 @@ class PurpleDot(RedDot):
     def get_color(self):
         """Return the purple color for this dot."""
         return (128, 0, 128)  # Purple color
+
+    def shoot_projectile(self):
+        """
+        Create a projectile in the direction of momentum (Purple player version).
+
+        Returns:
+            Projectile: New projectile instance, or None if not moving
+        """
+        speed = math.sqrt(self.velocity_x**2 + self.velocity_y**2)
+
+        # Only shoot if moving (to determine direction)
+        if speed < 0.1:
+            return None
+
+        # Calculate projectile direction (same as momentum direction)
+        direction_x = self.velocity_x / speed if speed > 0 else 0
+        direction_y = self.velocity_y / speed if speed > 0 else 0
+
+        # Calculate projectile velocity (minimum speed + purple dot's speed)
+        projectile_speed = PROJECTILE_MIN_SPEED + speed
+        projectile_vel_x = direction_x * projectile_speed
+        projectile_vel_y = direction_y * projectile_speed
+
+        # Create projectile at purple dot's position with "purple" owner_id
+        return Projectile(
+            self.virtual_x, self.virtual_y, projectile_vel_x, projectile_vel_y, "purple"
+        )
 
 
 class StaticCircle:

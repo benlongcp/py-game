@@ -194,7 +194,7 @@ class ScoringDemoWindow(QMainWindow):
                 "🎮 Manual Control Mode",
                 "",
                 "Controls:",
-                "• Player 1 (Red): Arrow keys + Space (shoot)",
+                "• Player 1 (Red): Arrow keys + Enter (shoot)",
                 "• Player 2 (Purple): WASD + Ctrl (shoot)",
                 "",
                 "Try to score points by shooting the blue square into the static circles!",
@@ -218,7 +218,7 @@ class ScoringDemoWindow(QMainWindow):
                 Qt.Key.Key_Down,
             ]:
                 self.game_engine.set_player1_key(key, True)
-            elif key == Qt.Key.Key_Space:
+            elif key == Qt.Key.Key_Return:  # Enter key
                 self.game_engine.shoot_projectile_player1()
 
             # Player 2 controls
