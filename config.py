@@ -179,3 +179,16 @@ GAMEPAD_2_INDEX = 1  # Second connected gamepad
 ANALOG_STICK_MULTIPLIER = (
     0.15  # How much analog stick movement translates to acceleration
 )
+
+# Rate limiting system for projectiles
+PROJECTILE_RATE_LIMIT = 5  # Maximum projectiles per second
+PROJECTILE_RATE_WINDOW = 1.0  # Time window in seconds
+PROJECTILE_COOLDOWN_DURATION = 1.0  # Cooldown period in seconds after rate limit hit
+
+# Rate limiter UI settings
+RATE_LIMITER_RADIUS = 30  # Radius of the pie chart indicator
+RATE_LIMITER_THICKNESS = 6  # Thickness of the pie chart ring
+RATE_LIMITER_COLOR_NORMAL = (0, 255, 0)  # Green when available
+RATE_LIMITER_COLOR_WARNING = (255, 255, 0)  # Yellow when approaching limit
+RATE_LIMITER_COLOR_COOLDOWN = (255, 0, 0)  # Red during cooldown
+RATE_LIMITER_BACKGROUND_COLOR = (64, 64, 64)  # Dark gray background ring

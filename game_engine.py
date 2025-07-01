@@ -17,6 +17,7 @@ from objects import (
     CentralGravitationalDot,
 )
 from physics import PhysicsEngine
+from rate_limiter import ProjectileRateLimiter
 import math
 
 
@@ -64,6 +65,10 @@ class GameEngine:
         # Gamepad button state tracking (to detect button press/release)
         self.gamepad1_shoot_pressed = False
         self.gamepad2_shoot_pressed = False
+
+        # Rate limiters for projectile firing
+        self.player1_rate_limiter = ProjectileRateLimiter()
+        self.player2_rate_limiter = ProjectileRateLimiter()
 
     def set_gamepad_manager(self, gamepad_manager):
         """Set the gamepad manager reference."""
@@ -275,18 +280,28 @@ class GameEngine:
         if len(self.projectiles) >= PROJECTILE_MAX_COUNT:
             return
 
+        # Check rate limiter
+        if not self.player1_rate_limiter.can_fire():
+            return
+
         new_projectile = self.red_dot.shoot_projectile()
         if new_projectile:
             self.projectiles.append(new_projectile)
+            self.player1_rate_limiter.record_shot()
 
     def shoot_projectile_player2(self):
         """Create and add a projectile for player 2 (purple dot)."""
         if self.purple_dot is None or len(self.projectiles) >= PROJECTILE_MAX_COUNT:
             return
 
+        # Check rate limiter
+        if not self.player2_rate_limiter.can_fire():
+            return
+
         new_projectile = self.purple_dot.shoot_projectile()
         if new_projectile:
             self.projectiles.append(new_projectile)
+            self.player2_rate_limiter.record_shot()
 
     def set_player1_key(self, key, pressed):
         """Set player 1 key state."""
@@ -458,3 +473,11 @@ class GameEngine:
     def get_purple_player_hp(self):
         """Get the purple player's hit points."""
         return self.purple_player_hp
+
+    def get_player1_rate_limiter_progress(self):
+        """Get Player 1's rate limiter progress for UI display."""
+        return self.player1_rate_limiter.get_progress()
+
+    def get_player2_rate_limiter_progress(self):
+        """Get Player 2's rate limiter progress for UI display."""
+        return self.player2_rate_limiter.get_progress()

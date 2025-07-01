@@ -11,6 +11,7 @@ from config import *
 from game_engine import GameEngine
 from rendering import Renderer
 from gamepad_manager import GamepadManager
+from rate_limiter_ui import RateLimiterUI, StatusDisplay
 
 
 class SplitScreenView(QWidget):
@@ -152,11 +153,29 @@ class SplitScreenView(QWidget):
             else:
                 painter.drawText(10, 25, "Player 2 (Purple) - WASD + Ctrl")
 
-        # Draw status display (score and hit points)
+        # Draw status display (score, hit points, and rate limiters)
         red_score = self.game_engine.get_red_player_score()
         purple_score = self.game_engine.get_purple_player_score()
         red_hp = self.game_engine.get_red_player_hp()
         purple_hp = self.game_engine.get_purple_player_hp()
+
+        # Get rate limiter progress for both players
+        player1_rate_data = self.game_engine.get_player1_rate_limiter_progress()
+        player2_rate_data = self.game_engine.get_player2_rate_limiter_progress()
+
+        # Draw status display - each player sees only their own info
+        if player_number == 1:
+            # Player 1 view - show only Player 1 status
+            StatusDisplay.draw_player_status(
+                painter, 10, 50, "Player 1", red_hp, red_score, player1_rate_data
+            )
+        else:
+            # Player 2 view - show only Player 2 status
+            StatusDisplay.draw_player_status(
+                painter, 10, 50, "Player 2", purple_hp, purple_score, player2_rate_data
+            )
+
+        # Also draw the original status display for compatibility
         Renderer.draw_status_display(
             painter, red_score, purple_score, red_hp, purple_hp, width, height
         )
