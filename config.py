@@ -158,3 +158,22 @@ HIT_POINT_DAMAGE = 1  # Damage per collision/contact
 SCORE_TEXT_SIZE = 14
 SCORE_TEXT_COLOR = (0, 0, 0)  # Black text
 SCORE_POSITION_Y_OFFSET = 10  # Distance from bottom of screen
+
+# Gamepad settings
+GAMEPAD_ENABLED = True
+GAMEPAD_DEADZONE = 0.2  # Ignore small stick movements (0.0 to 1.0)
+GAMEPAD_SENSITIVITY = 1.0  # Multiplier for gamepad input
+
+# Gamepad button mappings (Xbox controller layout)
+# Player 1 (Red) - First gamepad
+GAMEPAD_1_SHOOT_BUTTON = 0  # A button
+GAMEPAD_1_INDEX = 0  # First connected gamepad
+
+# Player 2 (Purple) - Second gamepad
+GAMEPAD_2_SHOOT_BUTTON = 0  # A button
+GAMEPAD_2_INDEX = 1  # Second connected gamepad
+
+# Analog stick settings
+ANALOG_STICK_MULTIPLIER = (
+    0.15  # How much analog stick movement translates to acceleration
+)

@@ -58,6 +58,13 @@ class GameEngine:
         self.player1_keys = set()  # Arrow keys + Enter
         self.player2_keys = set()  # WASD + Ctrl
 
+        # Gamepad manager reference (set by split screen view)
+        self._gamepad_manager = None
+
+    def set_gamepad_manager(self, gamepad_manager):
+        """Set the gamepad manager reference."""
+        self._gamepad_manager = gamepad_manager
+
     def create_purple_dot(self):
         """Create the purple dot for player 2 if it doesn't exist."""
         if self.purple_dot is None:
@@ -74,32 +81,50 @@ class GameEngine:
 
     def _handle_input(self):
         """Process input for both players."""
-        # Player 1 (Red dot) - Arrow keys
-        self.red_dot.acceleration_x = 0
-        self.red_dot.acceleration_y = 0
+        # Player 1 (Red dot) - Arrow keys (only if gamepad not connected)
+        # Check if gamepad input should be used for player 1
+        gamepad_controlling_player1 = (
+            hasattr(self, "_gamepad_manager")
+            and GAMEPAD_ENABLED
+            and getattr(self, "_gamepad_manager", None)
+            and self._gamepad_manager.is_gamepad_connected(GAMEPAD_1_INDEX)
+        )
 
-        if Qt.Key.Key_Left in self.player1_keys:
-            self.red_dot.acceleration_x = -ACCELERATION
-        if Qt.Key.Key_Right in self.player1_keys:
-            self.red_dot.acceleration_x = ACCELERATION
-        if Qt.Key.Key_Up in self.player1_keys:
-            self.red_dot.acceleration_y = -ACCELERATION
-        if Qt.Key.Key_Down in self.player1_keys:
-            self.red_dot.acceleration_y = ACCELERATION
+        if not gamepad_controlling_player1:
+            self.red_dot.acceleration_x = 0
+            self.red_dot.acceleration_y = 0
 
-        # Player 2 (Purple dot) - WASD keys
+            if Qt.Key.Key_Left in self.player1_keys:
+                self.red_dot.acceleration_x = -ACCELERATION
+            if Qt.Key.Key_Right in self.player1_keys:
+                self.red_dot.acceleration_x = ACCELERATION
+            if Qt.Key.Key_Up in self.player1_keys:
+                self.red_dot.acceleration_y = -ACCELERATION
+            if Qt.Key.Key_Down in self.player1_keys:
+                self.red_dot.acceleration_y = ACCELERATION
+
+        # Player 2 (Purple dot) - WASD keys (only if gamepad not connected)
         if self.purple_dot is not None:
-            self.purple_dot.acceleration_x = 0
-            self.purple_dot.acceleration_y = 0
+            # Check if gamepad input should be used for player 2
+            gamepad_controlling_player2 = (
+                hasattr(self, "_gamepad_manager")
+                and GAMEPAD_ENABLED
+                and getattr(self, "_gamepad_manager", None)
+                and self._gamepad_manager.is_gamepad_connected(GAMEPAD_2_INDEX)
+            )
 
-            if Qt.Key.Key_A in self.player2_keys:
-                self.purple_dot.acceleration_x = -ACCELERATION
-            if Qt.Key.Key_D in self.player2_keys:
-                self.purple_dot.acceleration_x = ACCELERATION
-            if Qt.Key.Key_W in self.player2_keys:
-                self.purple_dot.acceleration_y = -ACCELERATION
-            if Qt.Key.Key_S in self.player2_keys:
-                self.purple_dot.acceleration_y = ACCELERATION
+            if not gamepad_controlling_player2:
+                self.purple_dot.acceleration_x = 0
+                self.purple_dot.acceleration_y = 0
+
+                if Qt.Key.Key_A in self.player2_keys:
+                    self.purple_dot.acceleration_x = -ACCELERATION
+                if Qt.Key.Key_D in self.player2_keys:
+                    self.purple_dot.acceleration_x = ACCELERATION
+                if Qt.Key.Key_W in self.player2_keys:
+                    self.purple_dot.acceleration_y = -ACCELERATION
+                if Qt.Key.Key_S in self.player2_keys:
+                    self.purple_dot.acceleration_y = ACCELERATION
 
     def _update_physics(self):
         """Update physics for all objects."""

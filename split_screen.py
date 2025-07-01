@@ -1,6 +1,7 @@
 """
 Split-screen widget for dual-player topographical plane game.
 Displays two views side-by-side in a single window.
+Supports both keyboard and gamepad input.
 """
 
 from PyQt6.QtWidgets import QWidget, QHBoxLayout
@@ -9,6 +10,7 @@ from PyQt6.QtCore import Qt, QTimer
 from config import *
 from game_engine import GameEngine
 from rendering import Renderer
+from gamepad_manager import GamepadManager
 
 
 class SplitScreenView(QWidget):
@@ -17,8 +19,20 @@ class SplitScreenView(QWidget):
     def __init__(self, game_engine):
         super().__init__()
         self.game_engine = game_engine
+
+        # Initialize gamepad manager
+        self.gamepad_manager = GamepadManager()
+
+        # Set gamepad manager reference in game engine
+        self.game_engine.set_gamepad_manager(self.gamepad_manager)
+
+        # Gamepad button state tracking (to detect button press/release)
+        self.gamepad1_shoot_pressed = False
+        self.gamepad2_shoot_pressed = False
+
         self._setup_window()
         self._setup_timer()
+        self._setup_gamepad_timer()
 
     def _setup_window(self):
         """Initialize window properties."""
@@ -33,6 +47,60 @@ class SplitScreenView(QWidget):
         self.render_timer = QTimer()
         self.render_timer.timeout.connect(self.update)  # Just trigger repaint
         self.render_timer.start(FRAME_TIME_MS)
+
+    def _setup_gamepad_timer(self):
+        """Setup the gamepad input timer."""
+        self.gamepad_timer = QTimer()
+        self.gamepad_timer.timeout.connect(self.update_gamepad_input)
+        self.gamepad_timer.start(16)  # Update at ~60 FPS
+
+    def update_gamepad_input(self):
+        """Update gamepad input each frame."""
+        if not GAMEPAD_ENABLED:
+            return
+
+        self.gamepad_manager.update()
+
+        # Player 1 (Red) - Gamepad 1
+        if self.gamepad_manager.is_gamepad_connected(GAMEPAD_1_INDEX):
+            gamepad1_input = self.gamepad_manager.get_gamepad_input(GAMEPAD_1_INDEX)
+
+            # Apply analog stick movement (replace arrow key input)
+            red_dot = self.game_engine.red_dot
+            red_dot.acceleration_x = (
+                gamepad1_input["left_stick_x"] * ANALOG_STICK_MULTIPLIER
+            )
+            red_dot.acceleration_y = (
+                gamepad1_input["left_stick_y"] * ANALOG_STICK_MULTIPLIER
+            )
+
+            # Handle shoot button
+            if gamepad1_input["shoot_button"] and not self.gamepad1_shoot_pressed:
+                self.game_engine.shoot_projectile_player1()
+                self.gamepad1_shoot_pressed = True
+            elif not gamepad1_input["shoot_button"]:
+                self.gamepad1_shoot_pressed = False
+
+        # Player 2 (Purple) - Gamepad 2
+        if self.gamepad_manager.is_gamepad_connected(GAMEPAD_2_INDEX):
+            gamepad2_input = self.gamepad_manager.get_gamepad_input(GAMEPAD_2_INDEX)
+
+            # Apply analog stick movement (replace WASD input)
+            if self.game_engine.purple_dot is not None:
+                purple_dot = self.game_engine.purple_dot
+                purple_dot.acceleration_x = (
+                    gamepad2_input["left_stick_x"] * ANALOG_STICK_MULTIPLIER
+                )
+                purple_dot.acceleration_y = (
+                    gamepad2_input["left_stick_y"] * ANALOG_STICK_MULTIPLIER
+                )
+
+                # Handle shoot button
+                if gamepad2_input["shoot_button"] and not self.gamepad2_shoot_pressed:
+                    self.game_engine.shoot_projectile_player2()
+                    self.gamepad2_shoot_pressed = True
+                elif not gamepad2_input["shoot_button"]:
+                    self.gamepad2_shoot_pressed = False
 
     def paintEvent(self, event):
         """Handle painting of both player views."""
@@ -116,9 +184,19 @@ class SplitScreenView(QWidget):
         # Draw player labels
         painter.setPen(QPen(QColor(0, 0, 0), 2))
         if player_number == 1:
-            painter.drawText(10, 25, "Player 1 (Red) - Arrow Keys + Enter")
+            if GAMEPAD_ENABLED and self.gamepad_manager.is_gamepad_connected(
+                GAMEPAD_1_INDEX
+            ):
+                painter.drawText(10, 25, "Player 1 (Red) - Gamepad 1")
+            else:
+                painter.drawText(10, 25, "Player 1 (Red) - Arrow Keys + Enter")
         else:
-            painter.drawText(10, 25, "Player 2 (Purple) - WASD + Ctrl")
+            if GAMEPAD_ENABLED and self.gamepad_manager.is_gamepad_connected(
+                GAMEPAD_2_INDEX
+            ):
+                painter.drawText(10, 25, "Player 2 (Purple) - Gamepad 2")
+            else:
+                painter.drawText(10, 25, "Player 2 (Purple) - WASD + Ctrl")
 
         # Draw status display (score and hit points)
         red_score = self.game_engine.get_red_player_score()
@@ -132,29 +210,55 @@ class SplitScreenView(QWidget):
         painter.restore()
 
     def keyPressEvent(self, event):
-        """Handle key press events for both players."""
+        """Handle key press events for both players (fallback when gamepad not connected)."""
         key = event.key()
 
-        # Player 1 controls (Arrow keys + Enter)
-        if key in [Qt.Key.Key_Left, Qt.Key.Key_Right, Qt.Key.Key_Up, Qt.Key.Key_Down]:
-            self.game_engine.set_player1_key(key, True)
-        elif key == Qt.Key.Key_Return:  # Enter key
-            self.game_engine.shoot_projectile_player1()
+        # Player 1 controls (Arrow keys + Enter) - only if gamepad 1 is not connected
+        if not (
+            GAMEPAD_ENABLED
+            and self.gamepad_manager.is_gamepad_connected(GAMEPAD_1_INDEX)
+        ):
+            if key in [
+                Qt.Key.Key_Left,
+                Qt.Key.Key_Right,
+                Qt.Key.Key_Up,
+                Qt.Key.Key_Down,
+            ]:
+                self.game_engine.set_player1_key(key, True)
+            elif key == Qt.Key.Key_Return:  # Enter key
+                self.game_engine.shoot_projectile_player1()
 
-        # Player 2 controls (WASD + Left Ctrl)
-        elif key in [Qt.Key.Key_A, Qt.Key.Key_D, Qt.Key.Key_W, Qt.Key.Key_S]:
-            self.game_engine.set_player2_key(key, True)
-        elif key == Qt.Key.Key_Control:  # Left Ctrl
-            self.game_engine.shoot_projectile_player2()
+        # Player 2 controls (WASD + Left Ctrl) - only if gamepad 2 is not connected
+        if not (
+            GAMEPAD_ENABLED
+            and self.gamepad_manager.is_gamepad_connected(GAMEPAD_2_INDEX)
+        ):
+            if key in [Qt.Key.Key_A, Qt.Key.Key_D, Qt.Key.Key_W, Qt.Key.Key_S]:
+                self.game_engine.set_player2_key(key, True)
+            elif key == Qt.Key.Key_Control:  # Left Ctrl
+                self.game_engine.shoot_projectile_player2()
 
     def keyReleaseEvent(self, event):
-        """Handle key release events for both players."""
+        """Handle key release events for both players (fallback when gamepad not connected)."""
         key = event.key()
 
-        # Player 1 controls
-        if key in [Qt.Key.Key_Left, Qt.Key.Key_Right, Qt.Key.Key_Up, Qt.Key.Key_Down]:
-            self.game_engine.set_player1_key(key, False)
+        # Player 1 controls - only if gamepad 1 is not connected
+        if not (
+            GAMEPAD_ENABLED
+            and self.gamepad_manager.is_gamepad_connected(GAMEPAD_1_INDEX)
+        ):
+            if key in [
+                Qt.Key.Key_Left,
+                Qt.Key.Key_Right,
+                Qt.Key.Key_Up,
+                Qt.Key.Key_Down,
+            ]:
+                self.game_engine.set_player1_key(key, False)
 
-        # Player 2 controls
-        elif key in [Qt.Key.Key_A, Qt.Key.Key_D, Qt.Key.Key_W, Qt.Key.Key_S]:
-            self.game_engine.set_player2_key(key, False)
+        # Player 2 controls - only if gamepad 2 is not connected
+        if not (
+            GAMEPAD_ENABLED
+            and self.gamepad_manager.is_gamepad_connected(GAMEPAD_2_INDEX)
+        ):
+            if key in [Qt.Key.Key_A, Qt.Key.Key_D, Qt.Key.Key_W, Qt.Key.Key_S]:
+                self.game_engine.set_player2_key(key, False)
