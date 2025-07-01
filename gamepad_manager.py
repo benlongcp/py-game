@@ -32,6 +32,10 @@ class GamepadManager:
                 self.gamepads[i] = gamepad
                 print(f"Gamepad {i} connected: {gamepad.get_name()}")
 
+    def force_refresh_gamepads(self):
+        """Manually refresh the gamepad list (use sparingly)."""
+        self.refresh_gamepads()
+
     def get_gamepad_input(self, gamepad_index):
         """
         Get input state for a specific gamepad.
@@ -75,8 +79,8 @@ class GamepadManager:
         # Only pump events, don't consume them to avoid interfering with PyQt
         pygame.event.pump()
 
-        # Also refresh gamepad list in case of hot-plugging
-        self.refresh_gamepads()
+        # Only refresh gamepad list occasionally, not every frame
+        # This prevents potential gamepad reinitialization issues
 
     def is_gamepad_connected(self, gamepad_index):
         """

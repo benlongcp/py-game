@@ -61,6 +61,10 @@ class GameEngine:
         # Gamepad manager reference (set by split screen view)
         self._gamepad_manager = None
 
+        # Gamepad button state tracking (to detect button press/release)
+        self.gamepad1_shoot_pressed = False
+        self.gamepad2_shoot_pressed = False
+
     def set_gamepad_manager(self, gamepad_manager):
         """Set the gamepad manager reference."""
         self._gamepad_manager = gamepad_manager
@@ -81,16 +85,36 @@ class GameEngine:
 
     def _handle_input(self):
         """Process input for both players."""
-        # Player 1 (Red dot) - Arrow keys (only if gamepad not connected)
-        # Check if gamepad input should be used for player 1
+        # Update gamepad manager if available
+        if hasattr(self, "_gamepad_manager") and self._gamepad_manager:
+            self._gamepad_manager.update()
+
+        # Player 1 (Red dot) - Check gamepad first, then keyboard fallback
         gamepad_controlling_player1 = (
             hasattr(self, "_gamepad_manager")
+            and self._gamepad_manager
             and GAMEPAD_ENABLED
-            and getattr(self, "_gamepad_manager", None)
             and self._gamepad_manager.is_gamepad_connected(GAMEPAD_1_INDEX)
         )
 
-        if not gamepad_controlling_player1:
+        if gamepad_controlling_player1:
+            # Use gamepad input for Player 1
+            gamepad1_input = self._gamepad_manager.get_gamepad_input(GAMEPAD_1_INDEX)
+            self.red_dot.acceleration_x = (
+                gamepad1_input["left_stick_x"] * ANALOG_STICK_MULTIPLIER
+            )
+            self.red_dot.acceleration_y = (
+                gamepad1_input["left_stick_y"] * ANALOG_STICK_MULTIPLIER
+            )
+
+            # Handle shoot button
+            if gamepad1_input["shoot_button"] and not self.gamepad1_shoot_pressed:
+                self.shoot_projectile_player1()
+                self.gamepad1_shoot_pressed = True
+            elif not gamepad1_input["shoot_button"]:
+                self.gamepad1_shoot_pressed = False
+        else:
+            # Use keyboard input for Player 1
             self.red_dot.acceleration_x = 0
             self.red_dot.acceleration_y = 0
 
@@ -103,17 +127,35 @@ class GameEngine:
             if Qt.Key.Key_Down in self.player1_keys:
                 self.red_dot.acceleration_y = ACCELERATION
 
-        # Player 2 (Purple dot) - WASD keys (only if gamepad not connected)
+        # Player 2 (Purple dot) - Check gamepad first, then keyboard fallback
         if self.purple_dot is not None:
-            # Check if gamepad input should be used for player 2
             gamepad_controlling_player2 = (
                 hasattr(self, "_gamepad_manager")
+                and self._gamepad_manager
                 and GAMEPAD_ENABLED
-                and getattr(self, "_gamepad_manager", None)
                 and self._gamepad_manager.is_gamepad_connected(GAMEPAD_2_INDEX)
             )
 
-            if not gamepad_controlling_player2:
+            if gamepad_controlling_player2:
+                # Use gamepad input for Player 2
+                gamepad2_input = self._gamepad_manager.get_gamepad_input(
+                    GAMEPAD_2_INDEX
+                )
+                self.purple_dot.acceleration_x = (
+                    gamepad2_input["left_stick_x"] * ANALOG_STICK_MULTIPLIER
+                )
+                self.purple_dot.acceleration_y = (
+                    gamepad2_input["left_stick_y"] * ANALOG_STICK_MULTIPLIER
+                )
+
+                # Handle shoot button
+                if gamepad2_input["shoot_button"] and not self.gamepad2_shoot_pressed:
+                    self.shoot_projectile_player2()
+                    self.gamepad2_shoot_pressed = True
+                elif not gamepad2_input["shoot_button"]:
+                    self.gamepad2_shoot_pressed = False
+            else:
+                # Use keyboard input for Player 2
                 self.purple_dot.acceleration_x = 0
                 self.purple_dot.acceleration_y = 0
 

@@ -161,7 +161,9 @@ SCORE_POSITION_Y_OFFSET = 10  # Distance from bottom of screen
 
 # Gamepad settings
 GAMEPAD_ENABLED = True
-GAMEPAD_DEADZONE = 0.2  # Ignore small stick movements (0.0 to 1.0)
+GAMEPAD_DEADZONE = (
+    0.3  # Ignore small stick movements (0.0 to 1.0) - temporarily increased
+)
 GAMEPAD_SENSITIVITY = 1.0  # Multiplier for gamepad input
 
 # Gamepad button mappings (Xbox controller layout)

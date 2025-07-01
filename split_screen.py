@@ -26,10 +26,6 @@ class SplitScreenView(QWidget):
         # Set gamepad manager reference in game engine
         self.game_engine.set_gamepad_manager(self.gamepad_manager)
 
-        # Gamepad button state tracking (to detect button press/release)
-        self.gamepad1_shoot_pressed = False
-        self.gamepad2_shoot_pressed = False
-
         self._setup_window()
         self._setup_timer()
         self._setup_gamepad_timer()
@@ -50,57 +46,15 @@ class SplitScreenView(QWidget):
 
     def _setup_gamepad_timer(self):
         """Setup the gamepad input timer."""
-        self.gamepad_timer = QTimer()
-        self.gamepad_timer.timeout.connect(self.update_gamepad_input)
-        self.gamepad_timer.start(16)  # Update at ~60 FPS
+        # Note: We no longer use a separate gamepad timer
+        # Gamepad input is now handled directly in the game engine's update cycle
+        pass
 
     def update_gamepad_input(self):
         """Update gamepad input each frame."""
-        if not GAMEPAD_ENABLED:
-            return
-
-        self.gamepad_manager.update()
-
-        # Player 1 (Red) - Gamepad 1
-        if self.gamepad_manager.is_gamepad_connected(GAMEPAD_1_INDEX):
-            gamepad1_input = self.gamepad_manager.get_gamepad_input(GAMEPAD_1_INDEX)
-
-            # Apply analog stick movement (replace arrow key input)
-            red_dot = self.game_engine.red_dot
-            red_dot.acceleration_x = (
-                gamepad1_input["left_stick_x"] * ANALOG_STICK_MULTIPLIER
-            )
-            red_dot.acceleration_y = (
-                gamepad1_input["left_stick_y"] * ANALOG_STICK_MULTIPLIER
-            )
-
-            # Handle shoot button
-            if gamepad1_input["shoot_button"] and not self.gamepad1_shoot_pressed:
-                self.game_engine.shoot_projectile_player1()
-                self.gamepad1_shoot_pressed = True
-            elif not gamepad1_input["shoot_button"]:
-                self.gamepad1_shoot_pressed = False
-
-        # Player 2 (Purple) - Gamepad 2
-        if self.gamepad_manager.is_gamepad_connected(GAMEPAD_2_INDEX):
-            gamepad2_input = self.gamepad_manager.get_gamepad_input(GAMEPAD_2_INDEX)
-
-            # Apply analog stick movement (replace WASD input)
-            if self.game_engine.purple_dot is not None:
-                purple_dot = self.game_engine.purple_dot
-                purple_dot.acceleration_x = (
-                    gamepad2_input["left_stick_x"] * ANALOG_STICK_MULTIPLIER
-                )
-                purple_dot.acceleration_y = (
-                    gamepad2_input["left_stick_y"] * ANALOG_STICK_MULTIPLIER
-                )
-
-                # Handle shoot button
-                if gamepad2_input["shoot_button"] and not self.gamepad2_shoot_pressed:
-                    self.game_engine.shoot_projectile_player2()
-                    self.gamepad2_shoot_pressed = True
-                elif not gamepad2_input["shoot_button"]:
-                    self.gamepad2_shoot_pressed = False
+        # Note: Gamepad input is now handled directly in the game engine's _handle_input() method
+        # This method is kept for backward compatibility but does nothing
+        pass
 
     def paintEvent(self, event):
         """Handle painting of both player views."""
