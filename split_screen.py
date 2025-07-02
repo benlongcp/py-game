@@ -6,7 +6,7 @@ Supports both keyboard and gamepad input.
 
 import time
 from PyQt6.QtWidgets import QWidget, QHBoxLayout
-from PyQt6.QtGui import QPainter, QPen, QBrush, QColor, QFont
+from PyQt6.QtGui import QPainter, QPen, QBrush, QColor, QFont, QPixmap
 from PyQt6.QtCore import Qt, QTimer
 from config import *
 from game_engine import GameEngine
@@ -37,6 +37,14 @@ class SplitScreenView(QWidget):
         self._setup_timer()
         self._setup_gamepad_timer()
 
+    def _init_grid_cache(self):
+        """Initialize the grid cache for both player views."""
+        self._grid_cache = [None, None]  # One for each player view
+        self._grid_cache_params = [
+            None,
+            None,
+        ]  # Store (camera_x, camera_y, width, height, spacing)
+
     def _setup_window(self):
         """Initialize window properties."""
         # Enable dynamic resizing with minimum size constraints
@@ -46,8 +54,11 @@ class SplitScreenView(QWidget):
         self.resize(min_width, min_height)  # Initial size, but resizable
 
         self.setWindowTitle("Multi-Player Topographical Plane - Split Screen")
-        self.setStyleSheet("background-color: white;")
+        self.setStyleSheet("background-color: black;")
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+
+        # Initialize grid cache
+        self._init_grid_cache()
 
     def _setup_timer(self):
         """Setup the rendering timer."""
@@ -107,10 +118,13 @@ class SplitScreenView(QWidget):
         painter.save()
         painter.setClipRect(x_offset, y_offset, width, height)
 
-        # Translate painter to the view's coordinate system
-        painter.translate(x_offset, y_offset)
+        # Calculate view center for this player's view
+        view_center_x = width / 2
+        view_center_y = height / 2
+        view_width = width
+        view_height = height
 
-        # Get camera position based on which player this view is following
+        # Get camera position and following_dot based on which player this view is following
         if player_number == 1:
             camera_x = self.game_engine.red_dot.virtual_x
             camera_y = self.game_engine.red_dot.virtual_y
@@ -121,19 +135,36 @@ class SplitScreenView(QWidget):
                 camera_y = self.game_engine.purple_dot.virtual_y
                 following_dot = self.game_engine.purple_dot
             else:
-                # Fallback to red dot if purple doesn't exist yet
                 camera_x = self.game_engine.red_dot.virtual_x
                 camera_y = self.game_engine.red_dot.virtual_y
                 following_dot = self.game_engine.red_dot
 
-        # Calculate view center for this player's view
-        view_center_x = width / 2
-        view_center_y = height / 2
+        # --- Grid Caching ---
+        # Always check and update the grid cache for each player view
+        grid_spacing = Renderer.get_adaptive_grid_spacing(view_width, view_height)
+        cache_idx = 0 if player_number == 2 else 1
+        cache_params = (camera_x, camera_y, width, height, grid_spacing)
+        cache = self._grid_cache[cache_idx]
+        params = self._grid_cache_params[cache_idx]
+        needs_redraw = cache is None or params is None or params != cache_params
+        if needs_redraw:
+            print(f"Redrawing grid for player {player_number} (cache_idx={cache_idx})")
+            grid_pixmap = QPixmap(width, height)
+            grid_pixmap.fill(QColor(0, 0, 0))  # Fill with black
+            grid_painter = QPainter(grid_pixmap)
+            Renderer.draw_triangular_grid(
+                grid_painter, camera_x, camera_y, view_center_x, view_center_y
+            )
+            grid_painter.end()
+            self._grid_cache[cache_idx] = grid_pixmap
+            self._grid_cache_params[cache_idx] = cache_params
+        # Translate painter to the view's coordinate system
+        painter.translate(x_offset, y_offset)
+        # Blit grid pixmap at (0,0) in local view coordinates
+        painter.drawPixmap(0, 0, self._grid_cache[cache_idx])
+        # --- End Grid Caching ---
 
-        # Draw all elements in order (passing view dimensions for dynamic scaling)
-        Renderer.draw_triangular_grid(
-            painter, camera_x, camera_y, view_center_x, view_center_y
-        )
+        # Draw vignette and all other elements as before (no change)
         Renderer.draw_vignette_gradient(
             painter, camera_x, camera_y, view_center_x, view_center_y
         )

@@ -13,6 +13,21 @@ class Renderer:
     """Handles all rendering operations for the topographical plane."""
 
     @staticmethod
+    def get_adaptive_grid_spacing(view_width, view_height):
+        """
+        Returns an adaptive grid spacing based on the view size.
+        Increases spacing for very large windows to reduce draw calls.
+        """
+        base_spacing = int(GRID_SPACING * 1.5)  # 50% less dense
+        max_dim = max(view_width, view_height)
+        if max_dim > 1600:
+            return base_spacing * 2
+        elif max_dim > 1200:
+            return int(base_spacing * 1.5)
+        else:
+            return base_spacing
+
+    @staticmethod
     def draw_triangular_grid(painter, camera_x, camera_y, view_center_x, view_center_y):
         """
         Draw the triangular grid of dots.
@@ -34,8 +49,11 @@ class Renderer:
         grid_center_x = world_origin_screen_x
         grid_center_y = world_origin_screen_y
 
-        # Calculate vertical offset for triangular pattern
-        vertical_offset = GRID_SPACING * math.sqrt(3) / 2
+        # Use adaptive grid spacing
+        view_width = view_center_x * 2
+        view_height = view_center_y * 2
+        grid_spacing = Renderer.get_adaptive_grid_spacing(view_width, view_height)
+        vertical_offset = grid_spacing * math.sqrt(3) / 2
 
         # Calculate visible range
         min_y = grid_center_y - GRID_RADIUS
@@ -53,18 +71,18 @@ class Renderer:
                 continue
 
             # Calculate horizontal offset for triangular pattern
-            x_offset = 0 if row % 2 == 0 else GRID_SPACING / 2
+            x_offset = 0 if row % 2 == 0 else grid_spacing / 2
 
             # Calculate visible columns for this row
             min_x = grid_center_x - GRID_RADIUS
             max_x = grid_center_x + GRID_RADIUS
 
-            start_col = int((min_x - grid_center_x - x_offset) / GRID_SPACING) - 1
-            end_col = int((max_x - grid_center_x - x_offset) / GRID_SPACING) + 1
+            start_col = int((min_x - grid_center_x - x_offset) / grid_spacing) - 1
+            end_col = int((max_x - grid_center_x - x_offset) / grid_spacing) + 1
 
             # Draw dots in this row
             for col in range(start_col, end_col + 1):
-                x = grid_center_x + (col * GRID_SPACING) + x_offset
+                x = grid_center_x + (col * grid_spacing) + x_offset
 
                 # Skip dots outside the window
                 if x < -GRID_DOT_RADIUS or x > (view_center_x * 2) + GRID_DOT_RADIUS:
