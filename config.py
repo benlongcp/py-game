@@ -11,6 +11,11 @@ WINDOW_CENTER_Y = 400
 FPS = 60  # Target frames per second
 FRAME_TIME_MS = 16  # Milliseconds per frame (1000/60 ≈ 16)
 
+# FPS Counter settings
+SHOW_FPS_COUNTER = True  # Enable/disable FPS counter overlay
+FPS_COUNTER_COLOR = (255, 255, 255)  # White text
+FPS_COUNTER_BACKGROUND = (0, 0, 0, 150)  # Semi-transparent black background
+
 # Grid settings
 GRID_SPACING = 30
 GRID_DOT_RADIUS = 2

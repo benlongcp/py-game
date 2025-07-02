@@ -4,8 +4,9 @@ Displays two views side-by-side in a single window.
 Supports both keyboard and gamepad input.
 """
 
+import time
 from PyQt6.QtWidgets import QWidget, QHBoxLayout
-from PyQt6.QtGui import QPainter, QPen, QBrush, QColor
+from PyQt6.QtGui import QPainter, QPen, QBrush, QColor, QFont
 from PyQt6.QtCore import Qt, QTimer
 from config import *
 from game_engine import GameEngine
@@ -26,6 +27,11 @@ class SplitScreenView(QWidget):
 
         # Set gamepad manager reference in game engine
         self.game_engine.set_gamepad_manager(self.gamepad_manager)
+
+        # FPS tracking
+        self.fps_counter = 0
+        self.fps_display = 0.0
+        self.last_fps_time = time.time()
 
         self._setup_window()
         self._setup_timer()
@@ -62,6 +68,9 @@ class SplitScreenView(QWidget):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
+        # Update FPS counter
+        self._update_fps()
+
         # Draw Player 2 view (left side - Purple)
         self._draw_player_view(painter, 2, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT)
 
@@ -73,6 +82,10 @@ class SplitScreenView(QWidget):
         self._draw_player_view(
             painter, 1, WINDOW_WIDTH + 20, 0, WINDOW_WIDTH, WINDOW_HEIGHT
         )
+
+        # Draw FPS counter overlay at bottom of window (if enabled)
+        if SHOW_FPS_COUNTER:
+            self._draw_fps_counter(painter)
 
     def _draw_player_view(
         self, painter, player_number, x_offset, y_offset, width, height
@@ -235,3 +248,60 @@ class SplitScreenView(QWidget):
         ):
             if key in [Qt.Key.Key_A, Qt.Key.Key_D, Qt.Key.Key_W, Qt.Key.Key_S]:
                 self.game_engine.set_player2_key(key, False)
+
+    def _update_fps(self):
+        """Update FPS counter."""
+        self.fps_counter += 1
+        current_time = time.time()
+
+        # Update FPS display every second
+        if current_time - self.last_fps_time >= 1.0:
+            self.fps_display = self.fps_counter / (current_time - self.last_fps_time)
+            self.fps_counter = 0
+            self.last_fps_time = current_time
+
+    def _draw_fps_counter(self, painter):
+        """Draw FPS counter overlay at the bottom of the window."""
+        painter.save()
+
+        # Reset clipping to draw on the full window
+        painter.setClipping(False)
+
+        # Set up colors from config
+        background_color = QColor(*FPS_COUNTER_BACKGROUND)
+        text_color = QColor(*FPS_COUNTER_COLOR)
+
+        # Set font
+        font = QFont("Arial", 12, QFont.Weight.Bold)
+        painter.setFont(font)
+
+        # Calculate text metrics
+        fps_text = f"FPS: {self.fps_display:.1f}"
+        font_metrics = painter.fontMetrics()
+        text_width = font_metrics.horizontalAdvance(fps_text)
+        text_height = font_metrics.height()
+
+        # Position at bottom center
+        window_width = self.width()
+        window_height = self.height()
+        x = (window_width - text_width) // 2
+        y = window_height - text_height - 10  # 10px from bottom
+
+        # Draw background rectangle
+        padding = 8
+        painter.setBrush(QBrush(background_color))
+        painter.setPen(QPen(QColor(0, 0, 0, 0)))  # No border
+        painter.drawRoundedRect(
+            x - padding,
+            y - padding,
+            text_width + 2 * padding,
+            text_height + 2 * padding,
+            5,
+            5,  # Rounded corners
+        )
+
+        # Draw text
+        painter.setPen(QPen(text_color))
+        painter.drawText(x, y + font_metrics.ascent(), fps_text)
+
+        painter.restore()

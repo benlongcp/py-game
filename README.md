@@ -43,6 +43,8 @@ The application has been modularized into the following components:
 - **Newtonian physics**: All interactions follow conservation of momentum
 - **Static decorative circles**: Red and purple circles positioned on opposite ends of the grid
 - **Gravitational physics**: Blue square gets pulled toward gravitational dots when overlapping static circles
+- **FPS Counter**: Real-time frame rate display at bottom of window for performance monitoring
+- **Dynamic Scaling**: Fully resizable window with automatic content scaling
 
 ## Usage
 
@@ -65,6 +67,10 @@ python tests/test_dynamic_scaling.py
 
 # Demo the resizable window features
 python tests/demo_dynamic_scaling.py
+
+# Test and demo FPS counter
+python tests/test_fps_counter.py
+python tests/demo_fps_counter.py
 
 # Test gamepad functionality
 python tests/test_gamepad_detection.py
@@ -91,6 +97,14 @@ python tests/test_name.py
 - Momentum continues when keys are released
 - Deceleration brings dot to stop over ~10 seconds
 
+### FPS Counter
+- Real-time frame rate display at the bottom center of the window
+- Updates every second showing current performance
+- Semi-transparent background for easy reading
+- Can be enabled/disabled via `SHOW_FPS_COUNTER` in `config.py`
+- Target: ~60 FPS for smooth gameplay
+- Useful for performance monitoring and optimization
+
 ### Off-Screen Indicators
 When the blue square is outside a player's view, a small blue arrow appears on the edge of the screen pointing in the direction of the blue square. This helps players locate the target when it moves off-screen.
 
@@ -111,6 +125,7 @@ All physics parameters, display settings, and game constants can be adjusted in 
 - Object properties (sizes, masses, colors)
 - Collision behavior (restitution, bounce factors)
 - Visual settings (grid spacing, vignette effects)
+- FPS counter (enable/disable, colors, positioning)
 
 ## Physics
 
