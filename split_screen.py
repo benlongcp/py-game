@@ -18,6 +18,39 @@ from rate_limiter_ui import RateLimiterUI, StatusDisplay
 class SplitScreenView(QWidget):
     """Single window with two side-by-side player views."""
 
+    def _init_game_over_state(self):
+        self.game_over = False
+        self.game_over_winner = None  # 1 or 2
+        self._flash_timer = 0
+        self._flash_on = False
+
+    def _start_game_over(self, winner):
+        self.game_over = True
+        self.game_over_winner = winner
+        self._flash_timer = 0
+        self._flash_on = False
+        self._show_game_over_dialog()
+
+    def _show_game_over_dialog(self):
+        from PyQt6.QtWidgets import QMessageBox
+
+        winner = "Player 1 (Red)" if self.game_over_winner == 1 else "Player 2 (Purple)"
+        loser = "Player 2 (Purple)" if self.game_over_winner == 1 else "Player 1 (Red)"
+        msg = QMessageBox(self)
+        msg.setWindowTitle("Game Over")
+        msg.setText(f"{winner} wins!\n\n{loser} loses.\n\nReset the game?")
+        msg.setStandardButtons(QMessageBox.StandardButton.Yes)
+        msg.setDefaultButton(QMessageBox.StandardButton.Yes)
+        msg.setModal(True)
+        ret = msg.exec()
+        if ret == QMessageBox.StandardButton.Yes:
+            self._reset_game()
+
+    def _reset_game(self):
+        self.game_engine.reset_game_state()
+        self._init_game_over_state()
+        self.update()
+
     def __init__(self, game_engine):
         super().__init__()
         self.game_engine = game_engine
@@ -36,6 +69,7 @@ class SplitScreenView(QWidget):
         self._setup_window()
         self._setup_timer()
         self._setup_gamepad_timer()
+        self._init_game_over_state()
 
     def _init_grid_cache(self):
         """Initialize the grid cache for both player views."""
@@ -79,7 +113,6 @@ class SplitScreenView(QWidget):
         pass
 
     def paintEvent(self, event):
-        """Handle painting of both player views."""
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
@@ -93,8 +126,33 @@ class SplitScreenView(QWidget):
         view_width = (window_width - divider_width) // 2
         view_height = window_height
 
+        # --- Game Over Check ---
+        if not self.game_over:
+            red_score = self.game_engine.get_red_player_score()
+            purple_score = self.game_engine.get_purple_player_score()
+            if red_score >= 3:
+                self._start_game_over(1)
+            elif purple_score >= 3:
+                self._start_game_over(2)
+        # --- Flashing Effect ---
+        flash_color1 = None
+        flash_color2 = None
+        if self.game_over:
+            self._flash_timer += 1
+            if self._flash_timer % 20 == 0:
+                self._flash_on = not self._flash_on
+            if self._flash_on:
+                if self.game_over_winner == 1:
+                    flash_color1 = QColor(0, 255, 0, 120)  # Green overlay
+                    flash_color2 = QColor(255, 0, 0, 120)  # Red overlay
+                else:
+                    flash_color1 = QColor(255, 0, 0, 120)
+                    flash_color2 = QColor(0, 255, 0, 120)
+
         # Draw Player 2 view (left side - Purple)
-        self._draw_player_view(painter, 2, 0, 0, view_width, view_height)
+        self._draw_player_view(
+            painter, 2, 0, 0, view_width, view_height, overlay_color=flash_color2
+        )
 
         # Draw divider line
         painter.setPen(QPen(QColor(100, 100, 100), 3))
@@ -103,7 +161,13 @@ class SplitScreenView(QWidget):
 
         # Draw Player 1 view (right side - Red)
         self._draw_player_view(
-            painter, 1, view_width + divider_width, 0, view_width, view_height
+            painter,
+            1,
+            view_width + divider_width,
+            0,
+            view_width,
+            view_height,
+            overlay_color=flash_color1,
         )
 
         # Draw FPS counter overlay at bottom of window (if enabled)
@@ -111,7 +175,14 @@ class SplitScreenView(QWidget):
             self._draw_fps_counter(painter)
 
     def _draw_player_view(
-        self, painter, player_number, x_offset, y_offset, width, height
+        self,
+        painter,
+        player_number,
+        x_offset,
+        y_offset,
+        width,
+        height,
+        overlay_color=None,
     ):
         """Draw a single player's view."""
         # Set clipping rectangle for this view
@@ -258,6 +329,11 @@ class SplitScreenView(QWidget):
             painter, red_score, purple_score, red_hp, purple_hp, width, height
         )
 
+        # --- Overlay for Game Over Flashing ---
+        if overlay_color is not None:
+            painter.setBrush(QBrush(overlay_color))
+            painter.setPen(QPen(overlay_color))
+            painter.drawRect(0, 0, width, height)
         painter.restore()
 
     def keyPressEvent(self, event):

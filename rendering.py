@@ -18,7 +18,9 @@ class Renderer:
         Returns an adaptive grid spacing based on the view size.
         Increases spacing for very large windows to reduce draw calls.
         """
-        base_spacing = int(GRID_SPACING * 1.5)  # 50% less dense
+        base_spacing = int(
+            GRID_SPACING * 3.0
+        )  # 50% less dense again (total 75% less dense)
         max_dim = max(view_width, view_height)
         if max_dim > 1600:
             return base_spacing * 2

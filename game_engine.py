@@ -22,6 +22,34 @@ import math
 
 
 class GameEngine:
+    def reset_game_state(self):
+        """Reset all game state to initial values for a new game."""
+        self.red_dot = RedDot()
+        self.purple_dot = PurpleDot() if self.purple_dot is not None else None
+        self.blue_square = BlueSquare()
+        self.projectiles = []
+        self.red_gravity_dot = RedGravitationalDot()
+        self.purple_gravity_dot = PurpleGravitationalDot()
+        self.central_gravity_dot = CentralGravitationalDot()
+        self.red_player_score = 0
+        self.purple_player_score = 0
+        self.red_circle_overlap_timer = 0
+        self.purple_circle_overlap_timer = 0
+        self.red_player_hp = INITIAL_HIT_POINTS
+        self.purple_player_hp = INITIAL_HIT_POINTS
+        self.red_dot_collision_cooldown = 0
+        self.purple_dot_collision_cooldown = 0
+        self.player1_keys = set()
+        self.player2_keys = set()
+        self.player1_rate_limiter = ProjectileRateLimiter()
+        self.player2_rate_limiter = ProjectileRateLimiter()
+        # Gamepad state
+        self.gamepad1_shoot_pressed = False
+        self.gamepad2_shoot_pressed = False
+        # Keep gamepad manager reference if set
+        if hasattr(self, "_gamepad_manager"):
+            self.set_gamepad_manager(self._gamepad_manager)
+
     """Centralized game logic and state management."""
 
     def __init__(self):
