@@ -39,8 +39,12 @@ class SplitScreenView(QWidget):
 
     def _setup_window(self):
         """Initialize window properties."""
-        # Make window twice as wide to fit both views
-        self.setFixedSize(WINDOW_WIDTH * 2 + 20, WINDOW_HEIGHT)  # +20 for divider
+        # Enable dynamic resizing with minimum size constraints
+        min_width = (WINDOW_WIDTH * 2) + 20  # +20 for divider
+        min_height = WINDOW_HEIGHT
+        self.setMinimumSize(min_width, min_height)
+        self.resize(min_width, min_height)  # Initial size, but resizable
+
         self.setWindowTitle("Multi-Player Topographical Plane - Split Screen")
         self.setStyleSheet("background-color: white;")
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
@@ -71,16 +75,24 @@ class SplitScreenView(QWidget):
         # Update FPS counter
         self._update_fps()
 
+        # Calculate dynamic view dimensions
+        window_width = self.width()
+        window_height = self.height()
+        divider_width = 20
+        view_width = (window_width - divider_width) // 2
+        view_height = window_height
+
         # Draw Player 2 view (left side - Purple)
-        self._draw_player_view(painter, 2, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT)
+        self._draw_player_view(painter, 2, 0, 0, view_width, view_height)
 
         # Draw divider line
         painter.setPen(QPen(QColor(100, 100, 100), 3))
-        painter.drawLine(WINDOW_WIDTH, 0, WINDOW_WIDTH, WINDOW_HEIGHT)
+        divider_x = view_width + divider_width // 2
+        painter.drawLine(divider_x, 0, divider_x, view_height)
 
         # Draw Player 1 view (right side - Red)
         self._draw_player_view(
-            painter, 1, WINDOW_WIDTH + 20, 0, WINDOW_WIDTH, WINDOW_HEIGHT
+            painter, 1, view_width + divider_width, 0, view_width, view_height
         )
 
         # Draw FPS counter overlay at bottom of window (if enabled)
@@ -114,34 +126,56 @@ class SplitScreenView(QWidget):
                 camera_y = self.game_engine.red_dot.virtual_y
                 following_dot = self.game_engine.red_dot
 
-        # Draw all elements in order
-        Renderer.draw_triangular_grid(painter, camera_x, camera_y)
-        Renderer.draw_vignette_gradient(painter, camera_x, camera_y)
-        Renderer.draw_static_circles(painter, camera_x, camera_y)
-        Renderer.draw_gravitational_dots(painter, camera_x, camera_y)
+        # Calculate view center for this player's view
+        view_center_x = width / 2
+        view_center_y = height / 2
+
+        # Draw all elements in order (passing view dimensions for dynamic scaling)
+        Renderer.draw_triangular_grid(
+            painter, camera_x, camera_y, view_center_x, view_center_y
+        )
+        Renderer.draw_vignette_gradient(
+            painter, camera_x, camera_y, view_center_x, view_center_y
+        )
+        Renderer.draw_static_circles(painter, camera_x, camera_y, width, height)
+        Renderer.draw_gravitational_dots(painter, camera_x, camera_y, width, height)
         Renderer.draw_blue_square(
-            painter, self.game_engine.blue_square, camera_x, camera_y
+            painter, self.game_engine.blue_square, camera_x, camera_y, width, height
         )
         Renderer.draw_projectiles(
-            painter, self.game_engine.projectiles, camera_x, camera_y
+            painter, self.game_engine.projectiles, camera_x, camera_y, width, height
         )
 
         # Draw the dot this view is following at center
         if player_number == 1:
-            Renderer.draw_red_dot(painter, self.game_engine.red_dot)
+            Renderer.draw_red_dot(
+                painter, self.game_engine.red_dot, view_center_x, view_center_y
+            )
         else:
             # For player 2 view, draw purple dot at center in purple color
-            Renderer.draw_purple_dot_centered(painter, following_dot)
+            Renderer.draw_purple_dot_centered(
+                painter, following_dot, view_center_x, view_center_y
+            )
 
         # Draw the other player's dot in world coordinates if it exists
         if player_number == 1 and self.game_engine.purple_dot is not None:
             Renderer.draw_purple_dot(
-                painter, self.game_engine.purple_dot, camera_x, camera_y
+                painter,
+                self.game_engine.purple_dot,
+                camera_x,
+                camera_y,
+                view_center_x,
+                view_center_y,
             )
         elif player_number == 2:
             # Draw red dot in world coordinates when viewing from purple dot
             Renderer.draw_red_dot_world(
-                painter, self.game_engine.red_dot, camera_x, camera_y
+                painter,
+                self.game_engine.red_dot,
+                camera_x,
+                camera_y,
+                view_center_x,
+                view_center_y,
             )
 
         # Draw off-screen indicator for blue square if it's not visible

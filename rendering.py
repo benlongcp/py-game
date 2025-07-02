@@ -13,13 +13,14 @@ class Renderer:
     """Handles all rendering operations for the topographical plane."""
 
     @staticmethod
-    def draw_triangular_grid(painter, camera_x, camera_y):
+    def draw_triangular_grid(painter, camera_x, camera_y, view_center_x, view_center_y):
         """
         Draw the triangular grid of dots.
 
         Args:
             painter: QPainter instance
             camera_x, camera_y: Camera position in world coordinates
+            view_center_x, view_center_y: Center coordinates of the current view
         """
         # Set pen and brush for grid dots
         painter.setPen(QPen(QColor(*GRID_COLOR), 2))
@@ -27,8 +28,8 @@ class Renderer:
             QBrush(QColor(*GRID_COLOR))
         )  # Calculate grid center position on screen
         # The world origin (0,0) should appear at screen coordinates that account for camera offset
-        world_origin_screen_x = WINDOW_CENTER_X - camera_x
-        world_origin_screen_y = WINDOW_CENTER_Y - camera_y
+        world_origin_screen_x = view_center_x - camera_x
+        world_origin_screen_y = view_center_y - camera_y
 
         grid_center_x = world_origin_screen_x
         grid_center_y = world_origin_screen_y
@@ -48,7 +49,7 @@ class Renderer:
             y = grid_center_y + (row * vertical_offset)
 
             # Skip rows outside the window
-            if y < -GRID_DOT_RADIUS or y > WINDOW_HEIGHT + GRID_DOT_RADIUS:
+            if y < -GRID_DOT_RADIUS or y > (view_center_y * 2) + GRID_DOT_RADIUS:
                 continue
 
             # Calculate horizontal offset for triangular pattern
@@ -66,7 +67,7 @@ class Renderer:
                 x = grid_center_x + (col * GRID_SPACING) + x_offset
 
                 # Skip dots outside the window
-                if x < -GRID_DOT_RADIUS or x > WINDOW_WIDTH + GRID_DOT_RADIUS:
+                if x < -GRID_DOT_RADIUS or x > (view_center_x * 2) + GRID_DOT_RADIUS:
                     continue
 
                 # Check if dot is within the circular grid boundary
@@ -82,17 +83,20 @@ class Renderer:
                     )
 
     @staticmethod
-    def draw_vignette_gradient(painter, camera_x, camera_y):
+    def draw_vignette_gradient(
+        painter, camera_x, camera_y, view_center_x, view_center_y
+    ):
         """
         Draw the vignette gradient effect at the grid boundary.
 
         Args:
             painter: QPainter instance
             camera_x, camera_y: Camera position in world coordinates
+            view_center_x, view_center_y: Center coordinates of the current view
         """  # Calculate grid center position on screen (same as triangular grid)
         # The world origin (0,0) should appear at screen coordinates that account for camera offset
-        world_origin_screen_x = WINDOW_CENTER_X - camera_x
-        world_origin_screen_y = WINDOW_CENTER_Y - camera_y
+        world_origin_screen_x = view_center_x - camera_x
+        world_origin_screen_y = view_center_y - camera_y
 
         grid_center_x = world_origin_screen_x
         grid_center_y = world_origin_screen_y  # Create radial gradient that matches the actual grid boundary
@@ -116,7 +120,7 @@ class Renderer:
         )
 
     @staticmethod
-    def draw_blue_square(painter, square, camera_x, camera_y):
+    def draw_blue_square(painter, square, camera_x, camera_y, view_width, view_height):
         """
         Draw the blue square object.
 
@@ -124,10 +128,13 @@ class Renderer:
             painter: QPainter instance
             square: BlueSquare instance
             camera_x, camera_y: Camera position in world coordinates
+            view_width, view_height: Dimensions of the view area
         """
-        if not square.is_visible(camera_x, camera_y):
+        if not square.is_visible(camera_x, camera_y, view_width, view_height):
             return  # Get screen position
-        screen_x, screen_y = square.get_screen_position(camera_x, camera_y)
+        screen_x, screen_y = square.get_screen_position(
+            camera_x, camera_y, view_width, view_height
+        )
 
         # Choose colors based on pulse state
         if square.is_pulsing():
@@ -196,16 +203,17 @@ class Renderer:
         painter.restore()
 
     @staticmethod
-    def draw_red_dot(painter, dot):
+    def draw_red_dot(painter, dot, view_center_x, view_center_y):
         """
         Draw the red dot with momentum indicator.
 
         Args:
             painter: QPainter instance
             dot: RedDot instance
+            view_center_x, view_center_y: Center coordinates of the current view
         """
         # Get screen position (always at center)
-        screen_x, screen_y = dot.get_screen_position()
+        screen_x, screen_y = view_center_x, view_center_y
 
         # Choose color based on pulse state
         if dot.is_pulsing():
@@ -278,7 +286,9 @@ class Renderer:
         painter.drawPolygon(triangle)
 
     @staticmethod
-    def draw_projectiles(painter, projectiles, camera_x, camera_y):
+    def draw_projectiles(
+        painter, projectiles, camera_x, camera_y, view_width, view_height
+    ):
         """
         Draw all active projectiles.
 
@@ -286,6 +296,7 @@ class Renderer:
             painter: QPainter instance
             projectiles: List of Projectile instances
             camera_x, camera_y: Camera position in world coordinates
+            view_width, view_height: Dimensions of the view area
         """
         # Set pen and brush for projectiles
         painter.setPen(QPen(QColor(*PROJECTILE_COLOR), 1))
@@ -293,12 +304,14 @@ class Renderer:
 
         for projectile in projectiles:
             if not projectile.is_active or not projectile.is_visible(
-                camera_x, camera_y
+                camera_x, camera_y, view_width, view_height
             ):
                 continue
 
             # Get screen position
-            screen_x, screen_y = projectile.get_screen_position(camera_x, camera_y)
+            screen_x, screen_y = projectile.get_screen_position(
+                camera_x, camera_y, view_width, view_height
+            )
 
             # Draw the projectile as a small circle
             painter.drawEllipse(
@@ -309,7 +322,7 @@ class Renderer:
             )
 
     @staticmethod
-    def draw_purple_dot(painter, dot, camera_x, camera_y):
+    def draw_purple_dot(painter, dot, camera_x, camera_y, view_center_x, view_center_y):
         """
         Draw the purple dot with momentum indicator.
 
@@ -317,17 +330,18 @@ class Renderer:
             painter: QPainter instance
             dot: PurpleDot instance
             camera_x, camera_y: Camera position in world coordinates
+            view_center_x, view_center_y: Center coordinates of the current view
         """
         # Get screen position relative to camera
-        screen_x = dot.virtual_x - (camera_x - WINDOW_CENTER_X)
-        screen_y = dot.virtual_y - (camera_y - WINDOW_CENTER_Y)
+        screen_x = dot.virtual_x - (camera_x - view_center_x)
+        screen_y = dot.virtual_y - (camera_y - view_center_y)
 
         # Only draw if visible on screen
         if (
             screen_x + dot.radius >= 0
-            and screen_x - dot.radius <= WINDOW_WIDTH
+            and screen_x - dot.radius <= (view_center_x * 2)
             and screen_y + dot.radius >= 0
-            and screen_y - dot.radius <= WINDOW_HEIGHT
+            and screen_y - dot.radius <= (view_center_y * 2)
         ):
 
             # Choose color based on pulse state
@@ -401,16 +415,17 @@ class Renderer:
         painter.drawPolygon(triangle)
 
     @staticmethod
-    def draw_purple_dot_centered(painter, dot):
+    def draw_purple_dot_centered(painter, dot, view_center_x, view_center_y):
         """
         Draw the purple dot at screen center with momentum indicator.
 
         Args:
             painter: QPainter instance
             dot: PurpleDot instance
+            view_center_x, view_center_y: Center coordinates of the current view
         """
         # Get screen position (always at center)
-        screen_x, screen_y = WINDOW_CENTER_X, WINDOW_CENTER_Y
+        screen_x, screen_y = view_center_x, view_center_y
 
         # Choose color based on pulse state
         if dot.is_pulsing():
@@ -436,7 +451,9 @@ class Renderer:
             )
 
     @staticmethod
-    def draw_red_dot_world(painter, dot, camera_x, camera_y):
+    def draw_red_dot_world(
+        painter, dot, camera_x, camera_y, view_center_x, view_center_y
+    ):
         """
         Draw the red dot in world coordinates with momentum indicator.
 
@@ -444,17 +461,18 @@ class Renderer:
             painter: QPainter instance
             dot: RedDot instance
             camera_x, camera_y: Camera position in world coordinates
+            view_center_x, view_center_y: Center coordinates of the current view
         """
         # Get screen position relative to camera
-        screen_x = dot.virtual_x - (camera_x - WINDOW_CENTER_X)
-        screen_y = dot.virtual_y - (camera_y - WINDOW_CENTER_Y)
+        screen_x = dot.virtual_x - (camera_x - view_center_x)
+        screen_y = dot.virtual_y - (camera_y - view_center_y)
 
         # Only draw if visible on screen
         if (
             screen_x + dot.radius >= 0
-            and screen_x - dot.radius <= WINDOW_WIDTH
+            and screen_x - dot.radius <= (view_center_x * 2)
             and screen_y + dot.radius >= 0
-            and screen_y - dot.radius <= WINDOW_HEIGHT
+            and screen_y - dot.radius <= (view_center_y * 2)
         ):
 
             # Choose color based on pulse state
@@ -602,13 +620,14 @@ class Renderer:
         painter.restore()
 
     @staticmethod
-    def draw_static_circles(painter, camera_x, camera_y):
+    def draw_static_circles(painter, camera_x, camera_y, view_width, view_height):
         """
         Draw the static decorative circles (red and purple).
 
         Args:
             painter: QPainter instance
             camera_x, camera_y: Camera position in world coordinates
+            view_width, view_height: Dimensions of the view area
         """
         # Import here to avoid circular imports
         from objects import StaticRedCircle, StaticPurpleCircle
@@ -618,15 +637,21 @@ class Renderer:
         purple_circle = StaticPurpleCircle()
 
         # Draw red circle if visible
-        if red_circle.is_visible(camera_x, camera_y):
-            Renderer._draw_static_circle(painter, red_circle, camera_x, camera_y)
+        if red_circle.is_visible(camera_x, camera_y, view_width, view_height):
+            Renderer._draw_static_circle(
+                painter, red_circle, camera_x, camera_y, view_width, view_height
+            )
 
         # Draw purple circle if visible
-        if purple_circle.is_visible(camera_x, camera_y):
-            Renderer._draw_static_circle(painter, purple_circle, camera_x, camera_y)
+        if purple_circle.is_visible(camera_x, camera_y, view_width, view_height):
+            Renderer._draw_static_circle(
+                painter, purple_circle, camera_x, camera_y, view_width, view_height
+            )
 
     @staticmethod
-    def _draw_static_circle(painter, circle, camera_x, camera_y):
+    def _draw_static_circle(
+        painter, circle, camera_x, camera_y, view_width, view_height
+    ):
         """
         Draw a single static circle.
 
@@ -634,9 +659,12 @@ class Renderer:
             painter: QPainter instance
             circle: StaticCircle instance
             camera_x, camera_y: Camera position in world coordinates
+            view_width, view_height: Dimensions of the view area
         """
         # Get screen position
-        screen_x, screen_y = circle.get_screen_position(camera_x, camera_y)
+        screen_x, screen_y = circle.get_screen_position(
+            camera_x, camera_y, view_width, view_height
+        )
 
         # Set up pen and brush
         painter.setPen(QPen(QColor(*circle.outline_color), 3))
@@ -651,13 +679,14 @@ class Renderer:
         )
 
     @staticmethod
-    def draw_gravitational_dots(painter, camera_x, camera_y):
+    def draw_gravitational_dots(painter, camera_x, camera_y, view_width, view_height):
         """
         Draw the gravitational dots inside the static circles.
 
         Args:
             painter: QPainter instance
             camera_x, camera_y: Camera position in world coordinates
+            view_width, view_height: Dimensions of the view area
         """
         # Import here to avoid circular imports
         from objects import RedGravitationalDot, PurpleGravitationalDot
@@ -667,19 +696,21 @@ class Renderer:
         purple_gravity_dot = PurpleGravitationalDot()
 
         # Draw red gravitational dot if visible
-        if red_gravity_dot.is_visible(camera_x, camera_y):
+        if red_gravity_dot.is_visible(camera_x, camera_y, view_width, view_height):
             Renderer._draw_gravitational_dot(
-                painter, red_gravity_dot, camera_x, camera_y
+                painter, red_gravity_dot, camera_x, camera_y, view_width, view_height
             )
 
         # Draw purple gravitational dot if visible
-        if purple_gravity_dot.is_visible(camera_x, camera_y):
+        if purple_gravity_dot.is_visible(camera_x, camera_y, view_width, view_height):
             Renderer._draw_gravitational_dot(
-                painter, purple_gravity_dot, camera_x, camera_y
+                painter, purple_gravity_dot, camera_x, camera_y, view_width, view_height
             )
 
     @staticmethod
-    def _draw_gravitational_dot(painter, gravity_dot, camera_x, camera_y):
+    def _draw_gravitational_dot(
+        painter, gravity_dot, camera_x, camera_y, view_width, view_height
+    ):
         """
         Draw a single gravitational dot with transparency.
 
@@ -687,9 +718,12 @@ class Renderer:
             painter: QPainter instance
             gravity_dot: GravitationalDot instance
             camera_x, camera_y: Camera position in world coordinates
+            view_width, view_height: Dimensions of the view area
         """
         # Get screen position
-        screen_x, screen_y = gravity_dot.get_screen_position(camera_x, camera_y)
+        screen_x, screen_y = gravity_dot.get_screen_position(
+            camera_x, camera_y, view_width, view_height
+        )
 
         # Set up pen and brush with transparency
         painter.setPen(QPen(QColor(*GRAVITY_DOT_OUTLINE), 2))

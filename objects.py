@@ -208,22 +208,30 @@ class BlueSquare:
         """Check if the square is currently showing the pulse effect."""
         return self.pulse_timer > 0
 
-    def get_screen_position(self, camera_x, camera_y):
-        """Get the screen position based on camera position."""
-        screen_x = self.x - (camera_x - WINDOW_CENTER_X)
-        screen_y = self.y - (camera_y - WINDOW_CENTER_Y)
+    def get_screen_position(
+        self, camera_x, camera_y, view_width=WINDOW_WIDTH, view_height=WINDOW_HEIGHT
+    ):
+        """Get the screen position based on camera position and view dimensions."""
+        view_center_x = view_width / 2
+        view_center_y = view_height / 2
+        screen_x = self.x - (camera_x - view_center_x)
+        screen_y = self.y - (camera_y - view_center_y)
         return screen_x, screen_y
 
-    def is_visible(self, camera_x, camera_y):
-        """Check if the square is visible on screen."""
-        screen_x, screen_y = self.get_screen_position(camera_x, camera_y)
+    def is_visible(
+        self, camera_x, camera_y, view_width=WINDOW_WIDTH, view_height=WINDOW_HEIGHT
+    ):
+        """Check if the square is visible on screen with dynamic view dimensions."""
+        screen_x, screen_y = self.get_screen_position(
+            camera_x, camera_y, view_width, view_height
+        )
         half_size = self.size / 2
 
         return (
             screen_x + half_size >= 0
-            and screen_x - half_size <= WINDOW_WIDTH
+            and screen_x - half_size <= view_width
             and screen_y + half_size >= 0
-            and screen_y - half_size <= WINDOW_HEIGHT
+            and screen_y - half_size <= view_height
         )
 
     def check_collision_with_dot(self, dot):
@@ -342,20 +350,28 @@ class Projectile:
             # Projectile hit the boundary - deactivate it
             self.is_active = False
 
-    def get_screen_position(self, camera_x, camera_y):
-        """Get the screen position based on camera position."""
-        screen_x = self.x - (camera_x - WINDOW_CENTER_X)
-        screen_y = self.y - (camera_y - WINDOW_CENTER_Y)
+    def get_screen_position(
+        self, camera_x, camera_y, view_width=WINDOW_WIDTH, view_height=WINDOW_HEIGHT
+    ):
+        """Get the screen position based on camera position and view dimensions."""
+        view_center_x = view_width / 2
+        view_center_y = view_height / 2
+        screen_x = self.x - (camera_x - view_center_x)
+        screen_y = self.y - (camera_y - view_center_y)
         return screen_x, screen_y
 
-    def is_visible(self, camera_x, camera_y):
-        """Check if the projectile is visible on screen."""
-        screen_x, screen_y = self.get_screen_position(camera_x, camera_y)
+    def is_visible(
+        self, camera_x, camera_y, view_width=WINDOW_WIDTH, view_height=WINDOW_HEIGHT
+    ):
+        """Check if the projectile is visible on screen with dynamic view dimensions."""
+        screen_x, screen_y = self.get_screen_position(
+            camera_x, camera_y, view_width, view_height
+        )
         return (
             screen_x + self.radius >= 0
-            and screen_x - self.radius <= WINDOW_WIDTH
+            and screen_x - self.radius <= view_width
             and screen_y + self.radius >= 0
-            and screen_y - self.radius <= WINDOW_HEIGHT
+            and screen_y - self.radius <= view_height
         )
 
     def check_collision_with_square(self, square):
@@ -569,21 +585,29 @@ class StaticCircle:
         self.color = color
         self.outline_color = outline_color
 
-    def get_screen_position(self, camera_x, camera_y):
-        """Get the screen position based on camera position."""
-        screen_x = self.x - (camera_x - WINDOW_CENTER_X)
-        screen_y = self.y - (camera_y - WINDOW_CENTER_Y)
+    def get_screen_position(
+        self, camera_x, camera_y, view_width=WINDOW_WIDTH, view_height=WINDOW_HEIGHT
+    ):
+        """Get the screen position based on camera position and view dimensions."""
+        view_center_x = view_width / 2
+        view_center_y = view_height / 2
+        screen_x = self.x - (camera_x - view_center_x)
+        screen_y = self.y - (camera_y - view_center_y)
         return screen_x, screen_y
 
-    def is_visible(self, camera_x, camera_y):
-        """Check if the circle is visible on screen."""
-        screen_x, screen_y = self.get_screen_position(camera_x, camera_y)
+    def is_visible(
+        self, camera_x, camera_y, view_width=WINDOW_WIDTH, view_height=WINDOW_HEIGHT
+    ):
+        """Check if the circle is visible on screen with dynamic view dimensions."""
+        screen_x, screen_y = self.get_screen_position(
+            camera_x, camera_y, view_width, view_height
+        )
 
         return (
             screen_x + self.radius >= 0
-            and screen_x - self.radius <= WINDOW_WIDTH
+            and screen_x - self.radius <= view_width
             and screen_y + self.radius >= 0
-            and screen_y - self.radius <= WINDOW_HEIGHT
+            and screen_y - self.radius <= view_height
         )
 
 
@@ -627,21 +651,29 @@ class GravitationalDot:
         self.strength = GRAVITY_STRENGTH
         self.max_distance = GRAVITY_MAX_DISTANCE
 
-    def get_screen_position(self, camera_x, camera_y):
-        """Get the screen position based on camera position."""
-        screen_x = self.x - (camera_x - WINDOW_CENTER_X)
-        screen_y = self.y - (camera_y - WINDOW_CENTER_Y)
+    def get_screen_position(
+        self, camera_x, camera_y, view_width=WINDOW_WIDTH, view_height=WINDOW_HEIGHT
+    ):
+        """Get the screen position based on camera position and view dimensions."""
+        view_center_x = view_width / 2
+        view_center_y = view_height / 2
+        screen_x = self.x - (camera_x - view_center_x)
+        screen_y = self.y - (camera_y - view_center_y)
         return screen_x, screen_y
 
-    def is_visible(self, camera_x, camera_y):
-        """Check if the gravitational dot is visible on screen."""
-        screen_x, screen_y = self.get_screen_position(camera_x, camera_y)
+    def is_visible(
+        self, camera_x, camera_y, view_width=WINDOW_WIDTH, view_height=WINDOW_HEIGHT
+    ):
+        """Check if the gravitational dot is visible on screen with dynamic view dimensions."""
+        screen_x, screen_y = self.get_screen_position(
+            camera_x, camera_y, view_width, view_height
+        )
 
         return (
             screen_x + self.radius >= 0
-            and screen_x - self.radius <= WINDOW_WIDTH
+            and screen_x - self.radius <= view_width
             and screen_y + self.radius >= 0
-            and screen_y - self.radius <= WINDOW_HEIGHT
+            and screen_y - self.radius <= view_height
         )
 
     def apply_gravity_to_object(self, obj):

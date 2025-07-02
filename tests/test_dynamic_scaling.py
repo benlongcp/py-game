@@ -5,6 +5,10 @@ This creates a resizable window to test that the game scales properly.
 """
 
 import sys
+import os
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import time
 from PyQt6.QtWidgets import (
     QApplication,
