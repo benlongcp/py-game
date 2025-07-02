@@ -17,10 +17,13 @@ The application has been modularized into the following components:
 
 ### Testing & Debug
 
-- **`tests/`** - Directory containing test and debug scripts
-  - **`test_alignment.py`** - Tests coordinate alignment between drawing and collision
-  - **`debug_coordinates.py`** - Debug script for coordinate system analysis
-  - **`debug_moving_scenario.py`** - Debug script for camera movement scenarios
+- **`tests/`** - **⚠️ ALL test, debug, and demo scripts MUST go here ⚠️**
+  - Contains all `test_*.py`, `debug_*.py`, and `demo_*.py` files
+  - Includes experimental and prototype scripts
+  - **NO test/debug/demo files should EVER be in the main directory**
+  - See `tests/ORGANIZATION_GUIDELINES.md` for detailed rules
+  - Use `python tests/check_organization.py` to verify compliance
+  - Use `python check_org.py` for quick organization checks
 
 ### Legacy Files
 
@@ -53,11 +56,23 @@ python main.py
 For two-player split-screen mode, see `MULTIPLAYER_README.md` for detailed instructions.
 
 ### Demo and Testing
-```bash
-# Test off-screen indicators
-python tests/demo_off_screen_indicator.py
 
-# Run other tests
+**⚠️ IMPORTANT: All test, debug, and demo scripts MUST be placed in the `tests/` folder**
+
+```bash
+# Test dynamic scaling functionality
+python tests/test_dynamic_scaling.py
+
+# Demo the resizable window features
+python tests/demo_dynamic_scaling.py
+
+# Test gamepad functionality
+python tests/test_gamepad_detection.py
+
+# Verify project organization
+python tests/check_organization.py
+
+# Run any other test
 python tests/test_name.py
 ```
 
