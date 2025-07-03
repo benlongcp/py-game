@@ -15,6 +15,7 @@ class ProjectileRateLimiter:
         self.firing_timestamps = []  # List of recent firing times
         self.cooldown_start_time = None  # When cooldown period started
         self.is_in_cooldown = False
+        self.max_rate = PROJECTILE_RATE_LIMIT
 
     def can_fire(self):
         """Check if the player can fire a projectile right now."""
@@ -36,7 +37,7 @@ class ProjectileRateLimiter:
         self._cleanup_old_timestamps(current_time)
 
         # Check if firing would exceed the rate limit
-        if len(self.firing_timestamps) >= PROJECTILE_RATE_LIMIT:
+        if len(self.firing_timestamps) >= self.max_rate:
             # Rate limit exceeded, enter cooldown
             self.is_in_cooldown = True
             self.cooldown_start_time = current_time

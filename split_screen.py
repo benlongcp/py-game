@@ -23,6 +23,8 @@ class SplitScreenView(QWidget):
         self.game_over_winner = None  # 1 or 2
         self._flash_timer = 0
         self._flash_on = False
+        if not hasattr(self, "points_to_win"):
+            self.points_to_win = 3
 
     def _start_game_over(self, winner):
         self.game_over = True
@@ -32,19 +34,67 @@ class SplitScreenView(QWidget):
         self._show_game_over_dialog()
 
     def _show_game_over_dialog(self):
-        from PyQt6.QtWidgets import QMessageBox
+        from PyQt6.QtWidgets import (
+            QMessageBox,
+            QDialog,
+            QVBoxLayout,
+            QLabel,
+            QPushButton,
+        )
 
         winner = "Player 1 (Red)" if self.game_over_winner == 1 else "Player 2 (Purple)"
         loser = "Player 2 (Purple)" if self.game_over_winner == 1 else "Player 1 (Red)"
         msg = QMessageBox(self)
         msg.setWindowTitle("Game Over")
-        msg.setText(f"{winner} wins!\n\n{loser} loses.\n\nReset the game?")
-        msg.setStandardButtons(QMessageBox.StandardButton.Yes)
+        msg.setText(f"{winner} wins!\n\n{loser} loses.\n\nWhat would you like to do?")
+        msg.setStandardButtons(
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+        msg.button(QMessageBox.StandardButton.Yes).setText("Reset")
+        msg.button(QMessageBox.StandardButton.No).setText("Continue")
         msg.setDefaultButton(QMessageBox.StandardButton.Yes)
         msg.setModal(True)
         ret = msg.exec()
         if ret == QMessageBox.StandardButton.Yes:
             self._reset_game()
+        elif ret == QMessageBox.StandardButton.No:
+            self._show_powerup_dialog()
+
+    def _show_powerup_dialog(self):
+        from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QPushButton
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Select a Powerup")
+        layout = QVBoxLayout()
+        loser = 2 if self.game_over_winner == 1 else 1
+        label = QLabel(f"Player {loser}, choose a powerup:")
+        layout.addWidget(label)
+        btn1 = QPushButton("Increase top speed by 50%")
+        btn2 = QPushButton("Double projectile radius")
+        btn3 = QPushButton("+2 projectiles per second")
+        layout.addWidget(btn1)
+        layout.addWidget(btn2)
+        layout.addWidget(btn3)
+        dialog.setLayout(layout)
+
+        def select_powerup(powerup):
+            if loser == 1:
+                self.game_engine.player1_powerups.append(powerup)
+            else:
+                self.game_engine.player2_powerups.append(powerup)
+            dialog.accept()
+
+        btn1.clicked.connect(lambda: select_powerup("top_speed_50"))
+        btn2.clicked.connect(lambda: select_powerup("double_projectile_radius"))
+        btn3.clicked.connect(lambda: select_powerup("plus_2_projectiles_per_sec"))
+        dialog.exec()
+        self._continue_game()
+
+    def _continue_game(self):
+        self.points_to_win += 3
+        self.game_engine.reset_positions_only()
+        self._init_game_over_state()
+        self.update()
 
     def _reset_game(self):
         self.game_engine.reset_game_state()
@@ -130,9 +180,9 @@ class SplitScreenView(QWidget):
         if not self.game_over:
             red_score = self.game_engine.get_red_player_score()
             purple_score = self.game_engine.get_purple_player_score()
-            if red_score >= 3:
+            if red_score >= self.points_to_win:
                 self._start_game_over(1)
-            elif purple_score >= 3:
+            elif purple_score >= self.points_to_win:
                 self._start_game_over(2)
         # --- Flashing Effect ---
         flash_color1 = None
@@ -318,11 +368,33 @@ class SplitScreenView(QWidget):
             StatusDisplay.draw_player_status(
                 painter, 10, 50, "Player 1", red_hp, red_score, player1_rate_data
             )
+            # Draw powerup indicators for Player 1
+            powerups = self.game_engine.player1_powerups
+            if powerups:
+                y_offset_powerup = 75
+                painter.setPen(QPen(QColor(255, 215, 0), 2))
+                painter.setFont(QFont("Arial", 10, QFont.Weight.Bold))
+                painter.drawText(
+                    10,
+                    y_offset_powerup,
+                    "Powerups: " + ", ".join(self._powerup_label(p) for p in powerups),
+                )
         else:
             # Player 2 view - show only Player 2 status
             StatusDisplay.draw_player_status(
                 painter, 10, 50, "Player 2", purple_hp, purple_score, player2_rate_data
             )
+            # Draw powerup indicators for Player 2
+            powerups = self.game_engine.player2_powerups
+            if powerups:
+                y_offset_powerup = 75
+                painter.setPen(QPen(QColor(255, 215, 0), 2))
+                painter.setFont(QFont("Arial", 10, QFont.Weight.Bold))
+                painter.drawText(
+                    10,
+                    y_offset_powerup,
+                    "Powerups: " + ", ".join(self._powerup_label(p) for p in powerups),
+                )
 
         # Also draw the original status display for compatibility
         Renderer.draw_status_display(
@@ -446,3 +518,12 @@ class SplitScreenView(QWidget):
         painter.drawText(x, y + font_metrics.ascent(), fps_text)
 
         painter.restore()
+
+    def _powerup_label(self, powerup):
+        if powerup == "top_speed_50":
+            return "Top Speed +50%"
+        if powerup == "double_projectile_radius":
+            return "Double Projectile Size"
+        if powerup == "plus_2_projectiles_per_sec":
+            return "+2 Projectiles/sec"
+        return powerup

@@ -22,34 +22,6 @@ import math
 
 
 class GameEngine:
-    def reset_game_state(self):
-        """Reset all game state to initial values for a new game."""
-        self.red_dot = RedDot()
-        self.purple_dot = PurpleDot() if self.purple_dot is not None else None
-        self.blue_square = BlueSquare()
-        self.projectiles = []
-        self.red_gravity_dot = RedGravitationalDot()
-        self.purple_gravity_dot = PurpleGravitationalDot()
-        self.central_gravity_dot = CentralGravitationalDot()
-        self.red_player_score = 0
-        self.purple_player_score = 0
-        self.red_circle_overlap_timer = 0
-        self.purple_circle_overlap_timer = 0
-        self.red_player_hp = INITIAL_HIT_POINTS
-        self.purple_player_hp = INITIAL_HIT_POINTS
-        self.red_dot_collision_cooldown = 0
-        self.purple_dot_collision_cooldown = 0
-        self.player1_keys = set()
-        self.player2_keys = set()
-        self.player1_rate_limiter = ProjectileRateLimiter()
-        self.player2_rate_limiter = ProjectileRateLimiter()
-        # Gamepad state
-        self.gamepad1_shoot_pressed = False
-        self.gamepad2_shoot_pressed = False
-        # Keep gamepad manager reference if set
-        if hasattr(self, "_gamepad_manager"):
-            self.set_gamepad_manager(self._gamepad_manager)
-
     """Centralized game logic and state management."""
 
     def __init__(self):
@@ -98,6 +70,10 @@ class GameEngine:
         self.player1_rate_limiter = ProjectileRateLimiter()
         self.player2_rate_limiter = ProjectileRateLimiter()
 
+        # Powerup tracking
+        self.player1_powerups = []  # List of powerups earned by Player 1 (Red)
+        self.player2_powerups = []  # List of powerups earned by Player 2 (Purple)
+
     def set_gamepad_manager(self, gamepad_manager):
         """Set the gamepad manager reference."""
         self._gamepad_manager = gamepad_manager
@@ -107,6 +83,76 @@ class GameEngine:
         if self.purple_dot is None:
             # Use PurpleDot's default starting position (in red circle goal)
             self.purple_dot = PurpleDot()
+
+    def apply_powerup_effects(self):
+        # Player 1
+        rate = 5
+        for p in self.player1_powerups:
+            if p == "plus_2_projectiles_per_sec":
+                rate += 2
+        self.player1_rate_limiter.max_rate = rate
+        # Player 2
+        rate2 = 5
+        for p in self.player2_powerups:
+            if p == "plus_2_projectiles_per_sec":
+                rate2 += 2
+        self.player2_rate_limiter.max_rate = rate2
+
+    def reset_game_state(self):
+        """Reset all game state to initial values for a new game."""
+        self.red_dot = RedDot()
+        self.purple_dot = PurpleDot() if self.purple_dot is not None else None
+        self.blue_square = BlueSquare()
+        self.projectiles = []
+        self.red_gravity_dot = RedGravitationalDot()
+        self.purple_gravity_dot = PurpleGravitationalDot()
+        self.central_gravity_dot = CentralGravitationalDot()
+        self.red_player_score = 0
+        self.purple_player_score = 0
+        self.red_circle_overlap_timer = 0
+        self.purple_circle_overlap_timer = 0
+        self.red_player_hp = INITIAL_HIT_POINTS
+        self.purple_player_hp = INITIAL_HIT_POINTS
+        self.red_dot_collision_cooldown = 0
+        self.purple_dot_collision_cooldown = 0
+        self.player1_keys = set()
+        self.player2_keys = set()
+        self.player1_rate_limiter = ProjectileRateLimiter()
+        self.player2_rate_limiter = ProjectileRateLimiter()
+        self.player1_powerups = []
+        self.player2_powerups = []
+        # Gamepad state
+        self.gamepad1_shoot_pressed = False
+        self.gamepad2_shoot_pressed = False
+        # Keep gamepad manager reference if set
+        if hasattr(self, "_gamepad_manager"):
+            self.set_gamepad_manager(self._gamepad_manager)
+        self.apply_powerup_effects()
+
+    def reset_positions_only(self):
+        """Reset player and blue square positions, but keep scores and powerups."""
+        self.red_dot = RedDot()
+        self.purple_dot = PurpleDot() if self.purple_dot is not None else None
+        self.blue_square = BlueSquare()
+        self.projectiles = []
+        self.red_circle_overlap_timer = 0
+        self.purple_circle_overlap_timer = 0
+        self.red_player_hp = INITIAL_HIT_POINTS
+        self.purple_player_hp = INITIAL_HIT_POINTS
+        self.red_dot_collision_cooldown = 0
+        self.purple_dot_collision_cooldown = 0
+        self.player1_keys = set()
+        self.player2_keys = set()
+        self.player1_rate_limiter = ProjectileRateLimiter()
+        self.player2_rate_limiter = ProjectileRateLimiter()
+        # Gamepad state
+        self.gamepad1_shoot_pressed = False
+        self.gamepad2_shoot_pressed = False
+        if hasattr(self, "_gamepad_manager"):
+            self.set_gamepad_manager(self._gamepad_manager)
+        self.apply_powerup_effects()
+
+    """Centralized game logic and state management."""
 
     def update_game_state(self):
         """Update all game objects - called every frame."""
@@ -133,19 +179,19 @@ class GameEngine:
         if gamepad_controlling_player1:
             # Use gamepad input for Player 1
             gamepad1_input = self._gamepad_manager.get_gamepad_input(GAMEPAD_1_INDEX)
+            max_speed = self.get_player1_effective_top_speed()
             self.red_dot.acceleration_x = (
                 gamepad1_input["left_stick_x"] * ANALOG_STICK_MULTIPLIER
             )
             self.red_dot.acceleration_y = (
                 gamepad1_input["left_stick_y"] * ANALOG_STICK_MULTIPLIER
             )
-
-            # Handle shoot button
-            if gamepad1_input["shoot_button"] and not self.gamepad1_shoot_pressed:
-                self.shoot_projectile_player1()
-                self.gamepad1_shoot_pressed = True
-            elif not gamepad1_input["shoot_button"]:
-                self.gamepad1_shoot_pressed = False
+            # Clamp velocity to max_speed
+            speed = math.sqrt(self.red_dot.velocity_x**2 + self.red_dot.velocity_y**2)
+            if speed > max_speed:
+                scale = max_speed / speed
+                self.red_dot.velocity_x *= scale
+                self.red_dot.velocity_y *= scale
         else:
             # Use keyboard input for Player 1
             self.red_dot.acceleration_x = 0
@@ -174,19 +220,20 @@ class GameEngine:
                 gamepad2_input = self._gamepad_manager.get_gamepad_input(
                     GAMEPAD_2_INDEX
                 )
+                max_speed2 = self.get_player2_effective_top_speed()
                 self.purple_dot.acceleration_x = (
                     gamepad2_input["left_stick_x"] * ANALOG_STICK_MULTIPLIER
                 )
                 self.purple_dot.acceleration_y = (
                     gamepad2_input["left_stick_y"] * ANALOG_STICK_MULTIPLIER
                 )
-
-                # Handle shoot button
-                if gamepad2_input["shoot_button"] and not self.gamepad2_shoot_pressed:
-                    self.shoot_projectile_player2()
-                    self.gamepad2_shoot_pressed = True
-                elif not gamepad2_input["shoot_button"]:
-                    self.gamepad2_shoot_pressed = False
+                speed2 = math.sqrt(
+                    self.purple_dot.velocity_x**2 + self.purple_dot.velocity_y**2
+                )
+                if speed2 > max_speed2:
+                    scale2 = max_speed2 / speed2
+                    self.purple_dot.velocity_x *= scale2
+                    self.purple_dot.velocity_y *= scale2
             else:
                 # Use keyboard input for Player 2
                 self.purple_dot.acceleration_x = 0
@@ -314,6 +361,8 @@ class GameEngine:
 
         new_projectile = self.red_dot.shoot_projectile()
         if new_projectile:
+            # Apply powerup effects to projectile radius
+            new_projectile.radius = self.get_player1_projectile_radius()
             self.projectiles.append(new_projectile)
             self.player1_rate_limiter.record_shot()
 
@@ -328,6 +377,7 @@ class GameEngine:
 
         new_projectile = self.purple_dot.shoot_projectile()
         if new_projectile:
+            new_projectile.radius = self.get_player2_projectile_radius()
             self.projectiles.append(new_projectile)
             self.player2_rate_limiter.record_shot()
 
@@ -509,3 +559,53 @@ class GameEngine:
     def get_player2_rate_limiter_progress(self):
         """Get Player 2's rate limiter progress for UI display."""
         return self.player2_rate_limiter.get_progress()
+
+    def get_player1_effective_top_speed(self):
+        base = MAX_SPEED
+        for p in self.player1_powerups:
+            if p == "top_speed_50":
+                base *= 1.5
+        return base
+
+    def get_player2_effective_top_speed(self):
+        base = MAX_SPEED
+        for p in self.player2_powerups:
+            if p == "top_speed_50":
+                base *= 1.5
+        return base
+
+    def get_player1_projectile_radius(self):
+        base = PROJECTILE_RADIUS
+        for p in self.player1_powerups:
+            if p == "double_projectile_radius":
+                base *= 2
+        return base
+
+    def get_player2_projectile_radius(self):
+        base = PROJECTILE_RADIUS
+        for p in self.player2_powerups:
+            if p == "double_projectile_radius":
+                base *= 2
+        return base
+
+    def get_player1_projectiles_per_sec(self):
+        base = (
+            self.player1_rate_limiter.max_rate
+            if hasattr(self.player1_rate_limiter, "max_rate")
+            else 5
+        )
+        for p in self.player1_powerups:
+            if p == "plus_2_projectiles_per_sec":
+                base += 2
+        return base
+
+    def get_player2_projectiles_per_sec(self):
+        base = (
+            self.player2_rate_limiter.max_rate
+            if hasattr(self.player2_rate_limiter, "max_rate")
+            else 5
+        )
+        for p in self.player2_powerups:
+            if p == "plus_2_projectiles_per_sec":
+                base += 2
+        return base
