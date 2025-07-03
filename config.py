@@ -45,7 +45,7 @@ PROJECTILE_RADIUS = 2  # Smaller than the red dot
 PROJECTILE_COLOR = (0, 255, 0)  # Green
 PROJECTILE_MIN_SPEED = 5.0  # Minimum projectile speed
 PROJECTILE_MASS = 5  # Light mass for projectiles
-PROJECTILE_MAX_COUNT = 20  # Maximum number of projectiles on screen
+PROJECTILE_MAX_COUNT = 120  # Maximum number of projectiles on screen (increased x6)
 
 # Blue square settings
 SQUARE_SIZE_MULTIPLIER = 10  # Square is 10x the size of the red dot

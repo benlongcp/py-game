@@ -335,8 +335,17 @@ class Projectile:
         self.is_active = True
         self.owner_id = owner_id  # "red" or "purple" - who fired this projectile
 
+        # Track if this projectile has bounced or hit anything yet
+        self.has_made_contact = False
+
+        # Track number of bounces off the play area boundary
+        self.bounce_count = 0
+
+        # For multi-shot: projectiles are initially 'grouped' and cannot interact until separated
+        self.just_launched = True
+
     def update_physics(self):
-        """Update projectile position."""
+        """Update projectile position and handle boundary bounces."""
         if not self.is_active:
             return
 
@@ -344,11 +353,24 @@ class Projectile:
         self.x += self.velocity_x
         self.y += self.velocity_y
 
-        # Check if projectile is outside the grid boundary
+        # Check for collision with circular boundary (bounce)
         distance_from_center = math.sqrt(self.x**2 + self.y**2)
-        if distance_from_center > GRID_RADIUS - self.radius:
-            # Projectile hit the boundary - deactivate it
-            self.is_active = False
+        boundary_radius = GRID_RADIUS - self.radius
+        if distance_from_center > boundary_radius:
+            # Calculate normal at the point of contact (from center to projectile)
+            nx = self.x / distance_from_center
+            ny = self.y / distance_from_center
+            # Reflect velocity vector
+            dot = self.velocity_x * nx + self.velocity_y * ny
+            self.velocity_x -= 2 * dot * nx
+            self.velocity_y -= 2 * dot * ny
+            # Move projectile just inside the boundary
+            self.x = nx * boundary_radius
+            self.y = ny * boundary_radius
+            self.bounce_count += 1
+            self.has_made_contact = True  # Bouncing counts as contact
+            if self.bounce_count >= 6:
+                self.is_active = False
 
     def get_screen_position(
         self, camera_x, camera_y, view_width=WINDOW_WIDTH, view_height=WINDOW_HEIGHT
@@ -400,6 +422,7 @@ class Projectile:
         )
 
         if is_colliding:
+            self.has_made_contact = True  # Mark as having made contact
             # Calculate the correct position to place the projectile just outside the square
             # Use the same logic as the red dot collision handling
             half_size = square.size / 2
@@ -476,8 +499,8 @@ class Projectile:
         if not self.is_active:
             return False
 
-        # Prevent self-collision: projectile doesn't collide with the player who fired it
-        if self.owner_id == dot_id:
+        # Only allow self-collision if projectile has made contact with something else
+        if self.owner_id == dot_id and not self.has_made_contact:
             return False
 
         # Check for circle-circle collision
@@ -487,6 +510,10 @@ class Projectile:
         collision_distance = self.radius + dot.radius
 
         if distance <= collision_distance:
+            if self.owner_id == dot_id:
+                self.has_made_contact = (
+                    True  # Mark as having made contact after first hit
+                )
             # Calculate collision normal (from dot to projectile)
             if distance > 0:
                 normal_x = (self.x - dot.virtual_x) / distance

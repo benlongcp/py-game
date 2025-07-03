@@ -62,6 +62,7 @@ class SplitScreenView(QWidget):
             ("plus_1_projectile_per_sec", "+1 projectile/second"),
             ("projectile_damage_plus_1", "Increase projectile damage by 1"),
             ("projectile_mass_50", "Increase projectile mass by 50%"),
+            ("projectile_speed_50", "Increase projectile speed by 50%"),
             ("hp_50", "Increase HP by 50%"),
             ("double_shot", "Increase projectiles by 1"),
             ("dot_mass_50", "Increase player dot mass by 50%"),
@@ -85,8 +86,10 @@ class SplitScreenView(QWidget):
 
         def select_powerup(powerup):
             if loser_num == 1:
+                print(f"[DEBUG] Assigning powerup to Player 1: {powerup}")
                 self.game_engine.player1_powerups.append(powerup)
             else:
+                print(f"[DEBUG] Assigning powerup to Player 2: {powerup}")
                 self.game_engine.player2_powerups.append(powerup)
             dialog.accept()
             self._continue_game()
@@ -273,6 +276,9 @@ class SplitScreenView(QWidget):
             overlay_color=flash_color1,
         )
 
+        # Draw powerup status row at the bottom for both players
+        # Powerup status is now drawn per-player in _draw_player_view
+
         # Draw FPS counter overlay at bottom of window (if enabled)
         if SHOW_FPS_COUNTER:
             self._draw_fps_counter(painter)
@@ -416,40 +422,69 @@ class SplitScreenView(QWidget):
         player2_rate_data = self.game_engine.get_player2_rate_limiter_progress()
 
         # Draw status display - each player sees only their own info
+        # Draw status display - each player sees only their own info
+        # Add extra margin below the status block before powerup column
+        POWERUP_MARGIN = 24  # Increased vertical margin (was 0)
+        status_block_y = 50
+        # The StatusDisplay likely draws at y=50 and is about 50-60px tall, so add extra margin
+        powerup_column_y = status_block_y + 60 + POWERUP_MARGIN
         if player_number == 1:
             # Player 1 view - show only Player 1 status
             StatusDisplay.draw_player_status(
-                painter, 10, 50, "Player 1", red_hp, red_score, player1_rate_data
+                painter,
+                10,
+                status_block_y,
+                "Player 1",
+                red_hp,
+                red_score,
+                player1_rate_data,
+                self.points_to_win,
             )
-            # Draw powerup indicators for Player 1
-            powerups = self.game_engine.player1_powerups
-            if powerups:
-                y_offset_powerup = 75
-                painter.setPen(QPen(QColor(255, 215, 0), 2))
-                painter.setFont(QFont("Arial", 10, QFont.Weight.Bold))
-                summary = self._summarize_powerups(powerups)
-                painter.drawText(
-                    10,
-                    y_offset_powerup,
-                    "Powerups: " + ", ".join(summary),
-                )
+            # Draw Player 1 powerup status text under status column
+            self._draw_powerup_status_column(
+                painter, player_number, 10, powerup_column_y
+            )
         else:
             # Player 2 view - show only Player 2 status
             StatusDisplay.draw_player_status(
-                painter, 10, 50, "Player 2", purple_hp, purple_score, player2_rate_data
+                painter,
+                10,
+                status_block_y,
+                "Player 2",
+                purple_hp,
+                purple_score,
+                player2_rate_data,
+                self.points_to_win,
             )
-            # Draw powerup indicators for Player 2
+            # Draw Player 2 powerup status text under status column
+            self._draw_powerup_status_column(
+                painter, player_number, 10, powerup_column_y
+            )
+
+    # Powerup status row at bottom removed. Now shown under status column.
+    def _draw_powerup_status_column(self, painter, player_number, x, y):
+        """Draws the powerup summary for the given player as a vertical column under their status block."""
+        painter.save()
+        painter.setFont(QFont("Arial", 10, QFont.Weight.Normal))
+        fm = painter.fontMetrics()
+        if player_number == 1:
+            powerups = self.game_engine.player1_powerups
+        else:
             powerups = self.game_engine.player2_powerups
-            if powerups:
-                y_offset_powerup = 75
-                painter.setPen(QPen(QColor(255, 215, 0), 2))
-                painter.setFont(QFont("Arial", 10, QFont.Weight.Bold))
-                summary = self._summarize_powerups(powerups)
-                painter.drawText(
-                    10,
-                    y_offset_powerup,
-                    "Powerups: " + ", ".join(summary),
-                )
+        summary = self._summarize_powerups(powerups) if powerups else []
+        col_x = x + 70
+        # Increase the vertical margin between the shots counter and the powerup status column
+        # Old: col_y = y
+        col_y = y + 24  # Increase margin (was 0, now 24px)
+        line_height = fm.height() + 2
+        if summary:
+            painter.setPen(QPen(QColor(255, 215, 0)))
+            for idx, item in enumerate(summary):
+                painter.drawText(col_x, col_y + idx * line_height, item)
+        else:
+            painter.setPen(QPen(QColor(180, 180, 180)))
+            painter.drawText(col_x, col_y, "No powerups")
+        painter.restore()
 
     def _summarize_powerups(self, powerups):
         # Count each stackable powerup
@@ -463,6 +498,7 @@ class SplitScreenView(QWidget):
             "plus_1_projectile_per_sec": "Projectile Rate",
             "projectile_damage_plus_1": "Projectile Damage",
             "projectile_mass_50": "Projectile Mass",
+            "projectile_speed_50": "Projectile Speed",
             "hp_50": "HP",
             "double_shot": "Double Shot",
             "dot_mass_50": "Dot Mass",
@@ -475,6 +511,7 @@ class SplitScreenView(QWidget):
             "plus_1_projectile_per_sec",
             "projectile_damage_plus_1",
             "projectile_mass_50",
+            "projectile_speed_50",
             "hp_50",
             "dot_mass_50",
             "goal_gravity_50",
@@ -491,6 +528,10 @@ class SplitScreenView(QWidget):
                         summary.append(f"Projectile Rate +{count[key]}")
                     elif key == "projectile_damage_plus_1":
                         summary.append(f"Projectile Damage +{count[key]}")
+                elif key == "double_shot":
+                    # Show number of projectiles: always at least 1, +1 per double_shot
+                    n = 1 + count["double_shot"]
+                    summary.append(f"Projectiles x{n}")
                 else:
                     summary.append(labels[key])
         # Add any unknowns
@@ -597,11 +638,11 @@ class SplitScreenView(QWidget):
         text_width = font_metrics.horizontalAdvance(fps_text)
         text_height = font_metrics.height()
 
-        # Position at bottom center
+        # Position just below the powerup status rows, centered
         window_width = self.width()
         window_height = self.height()
+        y = window_height - 10  # 10px from bottom
         x = (window_width - text_width) // 2
-        y = window_height - text_height - 10  # 10px from bottom
 
         # Draw background rectangle
         padding = 8
@@ -630,6 +671,7 @@ class SplitScreenView(QWidget):
             "plus_1_projectile_per_sec": "+1 Projectile/sec",
             "projectile_damage_plus_1": "Projectile Damage +1",
             "projectile_mass_50": "Projectile Mass +50%",
+            "projectile_speed_50": "Projectile Speed +50%",
             "hp_50": "HP +50%",
             "double_shot": "Projectiles +1",
             "dot_mass_50": "Dot Mass +50%",

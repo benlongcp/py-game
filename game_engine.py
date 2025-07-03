@@ -22,6 +22,79 @@ import math
 
 
 class GameEngine:
+    def _handle_projectile_collisions(self):
+        """Check and resolve collisions between all active projectiles."""
+        from physics import PhysicsEngine
+
+        projectiles = self.projectiles
+        n = len(projectiles)
+        for i in range(n):
+            p1 = projectiles[i]
+            if not p1.is_active:
+                continue
+            for j in range(i + 1, n):
+                p2 = projectiles[j]
+                if not p2.is_active:
+                    continue
+                # Prevent interaction if both projectiles were just launched and are still overlapping (multi-shot)
+                if getattr(p1, "just_launched", False) and getattr(
+                    p2, "just_launched", False
+                ):
+                    # Only allow interaction if they are no longer overlapping
+                    dx = p2.x - p1.x
+                    dy = p2.y - p1.y
+                    dist_sq = dx * dx + dy * dy
+                    min_dist = p1.radius + p2.radius
+                    if dist_sq < min_dist * min_dist:
+                        continue  # Still grouped, skip collision
+                    else:
+                        # Once separated, mark as no longer just launched
+                        p1.just_launched = False
+                        p2.just_launched = False
+                # Check for collision (circle-circle)
+                dx = p2.x - p1.x
+                dy = p2.y - p1.y
+                dist_sq = dx * dx + dy * dy
+                min_dist = p1.radius + p2.radius
+                if dist_sq < min_dist * min_dist:
+                    dist = math.sqrt(dist_sq) if dist_sq > 0 else 1e-6
+                    # Normal vector
+                    nx = dx / dist
+                    ny = dy / dist
+                    # Move projectiles apart to prevent overlap
+                    overlap = min_dist - dist
+                    p1.x -= nx * (overlap / 2)
+                    p1.y -= ny * (overlap / 2)
+                    p2.x += nx * (overlap / 2)
+                    p2.y += ny * (overlap / 2)
+                    # Apply collision response
+                    v1x, v1y, v2x, v2y = PhysicsEngine.apply_collision_response(
+                        p1.velocity_x,
+                        p1.velocity_y,
+                        p1.mass,
+                        p2.velocity_x,
+                        p2.velocity_y,
+                        p2.mass,
+                        nx,
+                        ny,
+                    )
+                    p1.velocity_x, p1.velocity_y = v1x, v1y
+                    p2.velocity_x, p2.velocity_y = v2x, v2y
+
+    def get_player1_projectile_speed_multiplier(self):
+        mult = 1.0
+        for p in self.player1_powerups:
+            if p == "projectile_speed_50":
+                mult *= 1.5
+        return mult
+
+    def get_player2_projectile_speed_multiplier(self):
+        mult = 1.0
+        for p in self.player2_powerups:
+            if p == "projectile_speed_50":
+                mult *= 1.5
+        return mult
+
     """Centralized game logic and state management."""
 
     def __init__(self):
@@ -423,6 +496,9 @@ class GameEngine:
                     if projectile.check_collision_with_dot(self.purple_dot, "purple"):
                         self._damage_player("purple", "projectile")
 
+        # Projectile vs projectile collisions
+        self._handle_projectile_collisions()
+
         # Player vs player collision
         if self.purple_dot is not None:
             self._handle_player_collision()
@@ -505,22 +581,27 @@ class GameEngine:
         direction_x = self.red_dot.velocity_x / speed
         direction_y = self.red_dot.velocity_y / speed
         base_angle = math.atan2(direction_y, direction_x)
-        spread_deg = 1.0  # 1 degree between each projectile
+        spread_deg = 2.0  # 2 degrees between each projectile
         spread_rad = math.radians(spread_deg)
         # Center the spread
         start_angle = base_angle - (spread_rad * (num_projectiles - 1) / 2)
+        speed_mult = self.get_player1_projectile_speed_multiplier()
         for i in range(num_projectiles):
             angle = start_angle + i * spread_rad
             dx = math.cos(angle)
             dy = math.sin(angle)
-            projectile_speed = PROJECTILE_MIN_SPEED + speed
+            projectile_speed = (PROJECTILE_MIN_SPEED + speed) * speed_mult
+            # Place each projectile just outside the player's dot, separated by 1 degree
+            launch_distance = self.red_dot.radius + 1.0  # 1px margin to avoid overlap
+            launch_x = self.red_dot.virtual_x + dx * launch_distance
+            launch_y = self.red_dot.virtual_y + dy * launch_distance
             projectile_vel_x = dx * projectile_speed
             projectile_vel_y = dy * projectile_speed
             from objects import Projectile
 
             new_projectile = Projectile(
-                self.red_dot.virtual_x,
-                self.red_dot.virtual_y,
+                launch_x,
+                launch_y,
                 projectile_vel_x,
                 projectile_vel_y,
                 "red",
@@ -548,22 +629,29 @@ class GameEngine:
         direction_x = self.purple_dot.velocity_x / speed
         direction_y = self.purple_dot.velocity_y / speed
         base_angle = math.atan2(direction_y, direction_x)
-        spread_deg = 1.0  # 1 degree between each projectile
+        spread_deg = 2.0  # 2 degrees between each projectile
         spread_rad = math.radians(spread_deg)
         # Center the spread
         start_angle = base_angle - (spread_rad * (num_projectiles - 1) / 2)
+        speed_mult = self.get_player2_projectile_speed_multiplier()
         for i in range(num_projectiles):
             angle = start_angle + i * spread_rad
             dx = math.cos(angle)
             dy = math.sin(angle)
-            projectile_speed = PROJECTILE_MIN_SPEED + speed
+            projectile_speed = (PROJECTILE_MIN_SPEED + speed) * speed_mult
+            # Place each projectile just outside the player's dot, separated by 1 degree
+            launch_distance = (
+                self.purple_dot.radius + 1.0
+            )  # 1px margin to avoid overlap
+            launch_x = self.purple_dot.virtual_x + dx * launch_distance
+            launch_y = self.purple_dot.virtual_y + dy * launch_distance
             projectile_vel_x = dx * projectile_speed
             projectile_vel_y = dy * projectile_speed
             from objects import Projectile
 
             new_projectile = Projectile(
-                self.purple_dot.virtual_x,
-                self.purple_dot.virtual_y,
+                launch_x,
+                launch_y,
                 projectile_vel_x,
                 projectile_vel_y,
                 "purple",
@@ -590,6 +678,10 @@ class GameEngine:
 
     def _apply_gravitational_forces(self):
         """Apply gravitational forces from the gravitational dots to the blue square."""
+        # Set goal gravity strengths based on player powerups
+        self.red_gravity_dot.strength = self.get_player1_goal_gravity()
+        self.purple_gravity_dot.strength = self.get_player2_goal_gravity()
+
         # Apply gravity from red gravitational dot
         self.red_gravity_dot.apply_gravity_to_object(self.blue_square)
 

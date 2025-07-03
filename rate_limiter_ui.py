@@ -106,7 +106,9 @@ class StatusDisplay:
     """Combined status display for player information."""
 
     @staticmethod
-    def draw_player_status(painter, x, y, player_name, hp, score, rate_limiter_data):
+    def draw_player_status(
+        painter, x, y, player_name, hp, score, rate_limiter_data, points_to_win=None
+    ):
         """
         Draw a comprehensive player status display.
 
@@ -117,6 +119,7 @@ class StatusDisplay:
             hp: Hit points
             score: Player score
             rate_limiter_data: Rate limiter progress data
+            points_to_win: Points needed to win (optional, for fraction display)
         """
         # Draw rate limiter indicator
         RateLimiterUI.draw_rate_limiter(painter, x + 30, y + 30, rate_limiter_data)
@@ -130,8 +133,11 @@ class StatusDisplay:
         # HP
         painter.drawText(x + 70, y + 35, f"HP: {hp}")
 
-        # Score
-        painter.drawText(x + 70, y + 50, f"Score: {score}")
+        # Score (show as fraction if points_to_win is provided)
+        if points_to_win is not None:
+            painter.drawText(x + 70, y + 50, f"Score: {score}/{points_to_win}")
+        else:
+            painter.drawText(x + 70, y + 50, f"Score: {score}")
 
         # Rate limiter status
         if rate_limiter_data["type"] == "cooldown":
