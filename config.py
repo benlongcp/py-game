@@ -186,7 +186,7 @@ ANALOG_STICK_MULTIPLIER = (
 )
 
 # Rate limiting system for projectiles
-PROJECTILE_RATE_LIMIT = 5  # Maximum projectiles per second
+PROJECTILE_RATE_LIMIT = 3  # Maximum projectiles per second (reduced from 5 to 3)
 PROJECTILE_RATE_WINDOW = 1.0  # Time window in seconds
 PROJECTILE_COOLDOWN_DURATION = 1.0  # Cooldown period in seconds after rate limit hit
 

@@ -159,7 +159,7 @@ class GameEngine:
 
     def apply_powerup_effects(self):
         # Player 1
-        base_rate = 5
+        base_rate = 3  # Default starting projectile rate reduced from 5 to 3
         for p in self.player1_powerups:
             if p == "plus_2_projectiles_per_sec":
                 base_rate += 2
@@ -168,7 +168,7 @@ class GameEngine:
         self.player1_rate_limiter.max_rate = base_rate
 
         # Player 2
-        base_rate2 = 5
+        base_rate2 = 3  # Default starting projectile rate reduced from 5 to 3
         for p in self.player2_powerups:
             if p == "plus_2_projectiles_per_sec":
                 base_rate2 += 2
@@ -590,7 +590,20 @@ class GameEngine:
             angle = start_angle + i * spread_rad
             dx = math.cos(angle)
             dy = math.sin(angle)
-            projectile_speed = (PROJECTILE_MIN_SPEED + speed) * speed_mult
+            # Vary speed across the arc: center is fastest, edges are slower
+            if num_projectiles > 1:
+                center_index = (num_projectiles - 1) / 2
+                distance_from_center = (
+                    abs(i - center_index) / center_index
+                )  # 0 at center, 1 at edge
+            else:
+                distance_from_center = 0
+            speed_factor = (
+                1.0 - 0.3 * distance_from_center
+            )  # 1.0 at center, 0.7 at edge
+            projectile_speed = (
+                (PROJECTILE_MIN_SPEED + speed) * speed_mult * speed_factor
+            )
             # Place each projectile just outside the player's dot, separated by 1 degree
             launch_distance = self.red_dot.radius + 1.0  # 1px margin to avoid overlap
             launch_x = self.red_dot.virtual_x + dx * launch_distance
@@ -638,7 +651,20 @@ class GameEngine:
             angle = start_angle + i * spread_rad
             dx = math.cos(angle)
             dy = math.sin(angle)
-            projectile_speed = (PROJECTILE_MIN_SPEED + speed) * speed_mult
+            # Vary speed across the arc: center is fastest, edges are slower
+            if num_projectiles > 1:
+                center_index = (num_projectiles - 1) / 2
+                distance_from_center = (
+                    abs(i - center_index) / center_index
+                )  # 0 at center, 1 at edge
+            else:
+                distance_from_center = 0
+            speed_factor = (
+                1.0 - 0.3 * distance_from_center
+            )  # 1.0 at center, 0.7 at edge
+            projectile_speed = (
+                (PROJECTILE_MIN_SPEED + speed) * speed_mult * speed_factor
+            )
             # Place each projectile just outside the player's dot, separated by 1 degree
             launch_distance = (
                 self.purple_dot.radius + 1.0

@@ -154,6 +154,7 @@ class SplitScreenView(QWidget):
 
     def _reset_game(self):
         self.game_engine.reset_game_state()
+        self.points_to_win = 3  # Reset win points to 3
         self._init_game_over_state()
         self.update()
 
