@@ -306,6 +306,7 @@ class Renderer:
         painter.drawPolygon(triangle)
 
     @staticmethod
+    @staticmethod
     def draw_projectiles(
         painter, projectiles, camera_x, camera_y, view_width, view_height
     ):
@@ -337,8 +338,8 @@ class Renderer:
             painter.drawEllipse(
                 int(screen_x - projectile.radius),
                 int(screen_y - projectile.radius),
-                projectile.radius * 2,
-                projectile.radius * 2,
+                int(projectile.radius * 2),
+                int(projectile.radius * 2),
             )
 
     @staticmethod

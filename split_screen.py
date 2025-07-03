@@ -5,6 +5,7 @@ Supports both keyboard and gamepad input.
 """
 
 import time
+import random
 from PyQt6.QtWidgets import QWidget, QHBoxLayout
 from PyQt6.QtGui import QPainter, QPen, QBrush, QColor, QFont, QPixmap
 from PyQt6.QtCore import Qt, QTimer
@@ -34,31 +35,70 @@ class SplitScreenView(QWidget):
         self._show_game_over_dialog()
 
     def _show_game_over_dialog(self):
+        # Only show the powerup dialog for the losing player, with a reset button included
         from PyQt6.QtWidgets import (
-            QMessageBox,
             QDialog,
             QVBoxLayout,
             QLabel,
             QPushButton,
+            QHBoxLayout,
         )
 
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Game Over & Powerup Selection")
+        layout = QVBoxLayout()
         winner = "Player 1 (Red)" if self.game_over_winner == 1 else "Player 2 (Purple)"
         loser = "Player 2 (Purple)" if self.game_over_winner == 1 else "Player 1 (Red)"
-        msg = QMessageBox(self)
-        msg.setWindowTitle("Game Over")
-        msg.setText(f"{winner} wins!\n\n{loser} loses.\n\nWhat would you like to do?")
-        msg.setStandardButtons(
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        loser_num = 2 if self.game_over_winner == 1 else 1
+        label = QLabel(
+            f"{winner} wins!\n\n{loser} loses.\n\nPlayer {loser_num}, choose a powerup:"
         )
-        msg.button(QMessageBox.StandardButton.Yes).setText("Reset")
-        msg.button(QMessageBox.StandardButton.No).setText("Continue")
-        msg.setDefaultButton(QMessageBox.StandardButton.Yes)
-        msg.setModal(True)
-        ret = msg.exec()
-        if ret == QMessageBox.StandardButton.Yes:
+        layout.addWidget(label)
+        # List of all possible powerups
+        all_powerups = [
+            ("increase_accel_50", "Increase acceleration by 50%"),
+            ("top_speed_50", "Top speed +50%"),
+            ("projectile_size_50", "Increase projectile size by 50%"),
+            ("plus_1_projectile_per_sec", "+1 projectile/second"),
+            ("projectile_damage_plus_1", "Increase projectile damage by 1"),
+            ("projectile_mass_50", "Increase projectile mass by 50%"),
+            ("hp_50", "Increase HP by 50%"),
+            ("double_shot", "Increase projectiles by 1"),
+            ("dot_mass_50", "Increase player dot mass by 50%"),
+            ("goal_gravity_50", "Increase gravitational pull of your goal by 50%"),
+        ]
+        # Pick 3 at random
+        options = random.sample(all_powerups, 3)
+        buttons = []
+        btn_layout = QHBoxLayout()
+        for key, label_text in options:
+            btn = QPushButton(label_text)
+            btn_layout.addWidget(btn)
+            buttons.append((btn, key))
+        layout.addLayout(btn_layout)
+
+        # Add Reset button
+        reset_btn = QPushButton("Reset Game")
+        layout.addWidget(reset_btn)
+
+        dialog.setLayout(layout)
+
+        def select_powerup(powerup):
+            if loser_num == 1:
+                self.game_engine.player1_powerups.append(powerup)
+            else:
+                self.game_engine.player2_powerups.append(powerup)
+            dialog.accept()
+            self._continue_game()
+
+        def reset_game():
+            dialog.accept()
             self._reset_game()
-        elif ret == QMessageBox.StandardButton.No:
-            self._show_powerup_dialog()
+
+        for btn, key in buttons:
+            btn.clicked.connect(lambda checked, k=key: select_powerup(k))
+        reset_btn.clicked.connect(reset_game)
+        dialog.exec()
 
     def _show_powerup_dialog(self):
         from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QPushButton
@@ -69,12 +109,26 @@ class SplitScreenView(QWidget):
         loser = 2 if self.game_over_winner == 1 else 1
         label = QLabel(f"Player {loser}, choose a powerup:")
         layout.addWidget(label)
-        btn1 = QPushButton("Increase top speed by 50%")
-        btn2 = QPushButton("Double projectile radius")
-        btn3 = QPushButton("+2 projectiles per second")
-        layout.addWidget(btn1)
-        layout.addWidget(btn2)
-        layout.addWidget(btn3)
+        # List of all possible powerups
+        all_powerups = [
+            ("increase_accel_50", "Increase acceleration by 50%"),
+            ("top_speed_50", "Top speed +50%"),
+            ("projectile_size_50", "Increase projectile size by 50%"),
+            ("plus_1_projectile_per_sec", "+1 projectile/second"),
+            ("projectile_damage_plus_1", "Increase projectile damage by 1"),
+            ("projectile_mass_50", "Increase projectile mass by 50%"),
+            ("hp_50", "Increase HP by 50%"),
+            ("double_shot", "Fire two projectiles simultaneously"),
+            ("dot_mass_50", "Increase player dot mass by 50%"),
+            ("goal_gravity_50", "Increase gravitational pull of your goal by 50%"),
+        ]
+        # Pick 3 at random
+        options = random.sample(all_powerups, 3)
+        buttons = []
+        for key, label_text in options:
+            btn = QPushButton(label_text)
+            layout.addWidget(btn)
+            buttons.append((btn, key))
         dialog.setLayout(layout)
 
         def select_powerup(powerup):
@@ -84,9 +138,8 @@ class SplitScreenView(QWidget):
                 self.game_engine.player2_powerups.append(powerup)
             dialog.accept()
 
-        btn1.clicked.connect(lambda: select_powerup("top_speed_50"))
-        btn2.clicked.connect(lambda: select_powerup("double_projectile_radius"))
-        btn3.clicked.connect(lambda: select_powerup("plus_2_projectiles_per_sec"))
+        for btn, key in buttons:
+            btn.clicked.connect(lambda checked, k=key: select_powerup(k))
         dialog.exec()
         self._continue_game()
 
@@ -374,10 +427,11 @@ class SplitScreenView(QWidget):
                 y_offset_powerup = 75
                 painter.setPen(QPen(QColor(255, 215, 0), 2))
                 painter.setFont(QFont("Arial", 10, QFont.Weight.Bold))
+                summary = self._summarize_powerups(powerups)
                 painter.drawText(
                     10,
                     y_offset_powerup,
-                    "Powerups: " + ", ".join(self._powerup_label(p) for p in powerups),
+                    "Powerups: " + ", ".join(summary),
                 )
         else:
             # Player 2 view - show only Player 2 status
@@ -390,11 +444,60 @@ class SplitScreenView(QWidget):
                 y_offset_powerup = 75
                 painter.setPen(QPen(QColor(255, 215, 0), 2))
                 painter.setFont(QFont("Arial", 10, QFont.Weight.Bold))
+                summary = self._summarize_powerups(powerups)
                 painter.drawText(
                     10,
                     y_offset_powerup,
-                    "Powerups: " + ", ".join(self._powerup_label(p) for p in powerups),
+                    "Powerups: " + ", ".join(summary),
                 )
+
+    def _summarize_powerups(self, powerups):
+        # Count each stackable powerup
+        from collections import Counter
+
+        count = Counter(powerups)
+        labels = {
+            "increase_accel_50": "Acceleration",
+            "top_speed_50": "Top Speed",
+            "projectile_size_50": "Projectile Size",
+            "plus_1_projectile_per_sec": "Projectile Rate",
+            "projectile_damage_plus_1": "Projectile Damage",
+            "projectile_mass_50": "Projectile Mass",
+            "hp_50": "HP",
+            "double_shot": "Double Shot",
+            "dot_mass_50": "Dot Mass",
+            "goal_gravity_50": "Goal Gravity",
+        }
+        stackable = {
+            "increase_accel_50",
+            "top_speed_50",
+            "projectile_size_50",
+            "plus_1_projectile_per_sec",
+            "projectile_damage_plus_1",
+            "projectile_mass_50",
+            "hp_50",
+            "dot_mass_50",
+            "goal_gravity_50",
+        }
+        summary = []
+        for key in labels:
+            if key in count:
+                if key in stackable:
+                    # Each instance is +50% or +1, so show total
+                    if key.endswith("_50"):
+                        percent = 50 * count[key]
+                        summary.append(f"{labels[key]} +{percent}%")
+                    elif key == "plus_1_projectile_per_sec":
+                        summary.append(f"Projectile Rate +{count[key]}")
+                    elif key == "projectile_damage_plus_1":
+                        summary.append(f"Projectile Damage +{count[key]}")
+                else:
+                    summary.append(labels[key])
+        # Add any unknowns
+        for key in count:
+            if key not in labels:
+                summary.append(key)
+        return summary
 
         # Also draw the original status display for compatibility
         Renderer.draw_status_display(
@@ -520,10 +623,16 @@ class SplitScreenView(QWidget):
         painter.restore()
 
     def _powerup_label(self, powerup):
-        if powerup == "top_speed_50":
-            return "Top Speed +50%"
-        if powerup == "double_projectile_radius":
-            return "Double Projectile Size"
-        if powerup == "plus_2_projectiles_per_sec":
-            return "+2 Projectiles/sec"
-        return powerup
+        labels = {
+            "increase_accel_50": "Acceleration +50%",
+            "top_speed_50": "Top Speed +50%",
+            "projectile_size_50": "Projectile Size +50%",
+            "plus_1_projectile_per_sec": "+1 Projectile/sec",
+            "projectile_damage_plus_1": "Projectile Damage +1",
+            "projectile_mass_50": "Projectile Mass +50%",
+            "hp_50": "HP +50%",
+            "double_shot": "Projectiles +1",
+            "dot_mass_50": "Dot Mass +50%",
+            "goal_gravity_50": "Goal Gravity +50%",
+        }
+        return labels.get(powerup, powerup)

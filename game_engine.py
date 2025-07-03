@@ -86,17 +86,155 @@ class GameEngine:
 
     def apply_powerup_effects(self):
         # Player 1
-        rate = 5
+        base_rate = 5
         for p in self.player1_powerups:
             if p == "plus_2_projectiles_per_sec":
-                rate += 2
-        self.player1_rate_limiter.max_rate = rate
+                base_rate += 2
+            if p == "plus_1_projectile_per_sec":
+                base_rate += 1
+        self.player1_rate_limiter.max_rate = base_rate
+
         # Player 2
-        rate2 = 5
+        base_rate2 = 5
         for p in self.player2_powerups:
             if p == "plus_2_projectiles_per_sec":
-                rate2 += 2
-        self.player2_rate_limiter.max_rate = rate2
+                base_rate2 += 2
+            if p == "plus_1_projectile_per_sec":
+                base_rate2 += 1
+        self.player2_rate_limiter.max_rate = base_rate2
+
+        # HP bonus
+        self.red_player_hp = int(INITIAL_HIT_POINTS * self.get_player1_hp_multiplier())
+        self.purple_player_hp = int(
+            INITIAL_HIT_POINTS * self.get_player2_hp_multiplier()
+        )
+
+        # Mass and gravity effects are handled in helper methods and used in physics/collision logic.
+
+    def get_player1_acceleration(self):
+        base = ACCELERATION
+        for p in self.player1_powerups:
+            if p == "acceleration_50":
+                base *= 1.5
+        return base
+
+    def get_player2_acceleration(self):
+        base = ACCELERATION
+        for p in self.player2_powerups:
+            if p == "acceleration_50":
+                base *= 1.5
+        return base
+
+    def get_player1_effective_top_speed(self):
+        base = MAX_SPEED
+        for p in self.player1_powerups:
+            if p == "top_speed_50":
+                base *= 1.5
+        return base
+
+    def get_player2_effective_top_speed(self):
+        base = MAX_SPEED
+        for p in self.player2_powerups:
+            if p == "top_speed_50":
+                base *= 1.5
+        return base
+
+    def get_player1_projectile_radius(self):
+        base = PROJECTILE_RADIUS
+        # Apply all 50% size increases cumulatively
+        for p in self.player1_powerups:
+            if p == "double_projectile_radius":
+                base *= 2
+        # Stackable 50% increases
+        count_50 = self.player1_powerups.count("projectile_size_50")
+        base *= 1.5**count_50
+        return base
+
+    def get_player2_projectile_radius(self):
+        base = PROJECTILE_RADIUS
+        for p in self.player2_powerups:
+            if p == "double_projectile_radius":
+                base *= 2
+        count_50 = self.player2_powerups.count("projectile_size_50")
+        base *= 1.5**count_50
+        return base
+
+    def get_player1_projectile_damage(self):
+        base = 1  # Default projectile damage
+        for p in self.player1_powerups:
+            if p == "projectile_damage_plus_1":
+                base += 1
+        return base
+
+    def get_player2_projectile_damage(self):
+        base = 1  # Default projectile damage
+        for p in self.player2_powerups:
+            if p == "projectile_damage_plus_1":
+                base += 1
+        return base
+
+    def get_player1_projectile_mass(self):
+        base = PROJECTILE_MASS
+        for p in self.player1_powerups:
+            if p == "projectile_mass_50":
+                base *= 1.5
+        return base
+
+    def get_player2_projectile_mass(self):
+        base = PROJECTILE_MASS
+        for p in self.player2_powerups:
+            if p == "projectile_mass_50":
+                base *= 1.5
+        return base
+
+    def get_player1_hp_multiplier(self):
+        mult = 1.0
+        for p in self.player1_powerups:
+            if p == "hp_50":
+                mult *= 1.5
+        return mult
+
+    def get_player2_hp_multiplier(self):
+        mult = 1.0
+        for p in self.player2_powerups:
+            if p == "hp_50":
+                mult *= 1.5
+        return mult
+
+    def get_player1_dot_mass(self):
+        base = DOT_MASS
+        for p in self.player1_powerups:
+            if p == "dot_mass_50":
+                base *= 1.5
+        return base
+
+    def get_player2_dot_mass(self):
+        base = DOT_MASS
+        for p in self.player2_powerups:
+            if p == "dot_mass_50":
+                base *= 1.5
+        return base
+
+    def get_player1_goal_gravity(self):
+        base = GRAVITY_STRENGTH
+        for p in self.player1_powerups:
+            if p == "goal_gravity_50":
+                base *= 1.5
+        return base
+
+    def get_player2_goal_gravity(self):
+        base = GRAVITY_STRENGTH
+        for p in self.player2_powerups:
+            if p == "goal_gravity_50":
+                base *= 1.5
+        return base
+
+    def get_player1_num_projectiles(self):
+        # Always at least 1, +1 for each double_shot powerup
+        return 1 + self.player1_powerups.count("double_shot")
+
+    def get_player2_num_projectiles(self):
+        return 1 + self.player2_powerups.count("double_shot")
 
     def reset_game_state(self):
         """Reset all game state to initial values for a new game."""
@@ -359,12 +497,39 @@ class GameEngine:
         if not self.player1_rate_limiter.can_fire():
             return
 
-        new_projectile = self.red_dot.shoot_projectile()
-        if new_projectile:
-            # Apply powerup effects to projectile radius
+        num_projectiles = self.get_player1_num_projectiles()
+        # Calculate base direction
+        speed = math.sqrt(self.red_dot.velocity_x**2 + self.red_dot.velocity_y**2)
+        if speed < 0.1:
+            return
+        direction_x = self.red_dot.velocity_x / speed
+        direction_y = self.red_dot.velocity_y / speed
+        base_angle = math.atan2(direction_y, direction_x)
+        spread_deg = 1.0  # 1 degree between each projectile
+        spread_rad = math.radians(spread_deg)
+        # Center the spread
+        start_angle = base_angle - (spread_rad * (num_projectiles - 1) / 2)
+        for i in range(num_projectiles):
+            angle = start_angle + i * spread_rad
+            dx = math.cos(angle)
+            dy = math.sin(angle)
+            projectile_speed = PROJECTILE_MIN_SPEED + speed
+            projectile_vel_x = dx * projectile_speed
+            projectile_vel_y = dy * projectile_speed
+            from objects import Projectile
+
+            new_projectile = Projectile(
+                self.red_dot.virtual_x,
+                self.red_dot.virtual_y,
+                projectile_vel_x,
+                projectile_vel_y,
+                "red",
+            )
             new_projectile.radius = self.get_player1_projectile_radius()
+            new_projectile.damage = self.get_player1_projectile_damage()
+            new_projectile.mass = self.get_player1_projectile_mass()
             self.projectiles.append(new_projectile)
-            self.player1_rate_limiter.record_shot()
+        self.player1_rate_limiter.record_shot()
 
     def shoot_projectile_player2(self):
         """Create and add a projectile for player 2 (purple dot)."""
@@ -375,11 +540,39 @@ class GameEngine:
         if not self.player2_rate_limiter.can_fire():
             return
 
-        new_projectile = self.purple_dot.shoot_projectile()
-        if new_projectile:
+        num_projectiles = self.get_player2_num_projectiles()
+        # Calculate base direction
+        speed = math.sqrt(self.purple_dot.velocity_x**2 + self.purple_dot.velocity_y**2)
+        if speed < 0.1:
+            return
+        direction_x = self.purple_dot.velocity_x / speed
+        direction_y = self.purple_dot.velocity_y / speed
+        base_angle = math.atan2(direction_y, direction_x)
+        spread_deg = 1.0  # 1 degree between each projectile
+        spread_rad = math.radians(spread_deg)
+        # Center the spread
+        start_angle = base_angle - (spread_rad * (num_projectiles - 1) / 2)
+        for i in range(num_projectiles):
+            angle = start_angle + i * spread_rad
+            dx = math.cos(angle)
+            dy = math.sin(angle)
+            projectile_speed = PROJECTILE_MIN_SPEED + speed
+            projectile_vel_x = dx * projectile_speed
+            projectile_vel_y = dy * projectile_speed
+            from objects import Projectile
+
+            new_projectile = Projectile(
+                self.purple_dot.virtual_x,
+                self.purple_dot.virtual_y,
+                projectile_vel_x,
+                projectile_vel_y,
+                "purple",
+            )
             new_projectile.radius = self.get_player2_projectile_radius()
+            new_projectile.damage = self.get_player2_projectile_damage()
+            new_projectile.mass = self.get_player2_projectile_mass()
             self.projectiles.append(new_projectile)
-            self.player2_rate_limiter.record_shot()
+        self.player2_rate_limiter.record_shot()
 
     def set_player1_key(self, key, pressed):
         """Set player 1 key state."""
@@ -576,16 +769,24 @@ class GameEngine:
 
     def get_player1_projectile_radius(self):
         base = PROJECTILE_RADIUS
+        # Apply 50% increase for each 'projectile_size_50' powerup
         for p in self.player1_powerups:
             if p == "double_projectile_radius":
                 base *= 2
+        for p in self.player1_powerups:
+            if p == "projectile_size_50":
+                base *= 1.5
         return base
 
     def get_player2_projectile_radius(self):
         base = PROJECTILE_RADIUS
+        # Apply 50% increase for each 'projectile_size_50' powerup
         for p in self.player2_powerups:
             if p == "double_projectile_radius":
                 base *= 2
+        for p in self.player2_powerups:
+            if p == "projectile_size_50":
+                base *= 1.5
         return base
 
     def get_player1_projectiles_per_sec(self):
