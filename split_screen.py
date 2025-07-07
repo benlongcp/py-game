@@ -92,8 +92,11 @@ class SplitScreenView(QWidget):
         self.stacked_widget.setCurrentWidget(self.game_view)
 
     def _continue_game(self):
-        self.points_to_win += 3
+        self.points_to_win = 3  # Each round is always to 3 points
         self.game_engine.reset_positions_only()
+        # Reset both player scores to 0 for the new round
+        self.game_engine.red_player_score = 0
+        self.game_engine.purple_player_score = 0
         self._init_game_over_state()
         self.game_view.update()
 

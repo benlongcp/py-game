@@ -766,18 +766,18 @@ class GameEngine:
 
         # Check for HP depletion
         if self.red_player_hp <= 0:
-            self.purple_player_score += 1
+            self.purple_player_score += 1  # HP depletion = 1 point
             self.trigger_score_pulse(2)  # Trigger purple player score pulse
             self._reset_player_hp()
             print(
-                f"Purple player scores from red HP depletion! Score: {self.purple_player_score}"
+                f"Purple player scores 1 point from red HP depletion! Score: {self.purple_player_score}"
             )
         elif self.purple_player_hp <= 0:
-            self.red_player_score += 1
+            self.red_player_score += 1  # HP depletion = 1 point
             self.trigger_score_pulse(1)  # Trigger red player score pulse
             self._reset_player_hp()
             print(
-                f"Red player scores from purple HP depletion! Score: {self.red_player_score}"
+                f"Red player scores 1 point from purple HP depletion! Score: {self.red_player_score}"
             )
 
     def _check_boundary_collisions(self):
@@ -848,23 +848,23 @@ class GameEngine:
 
         # Check for scoring conditions (award 2 points for static circle scoring)
         if self.red_circle_overlap_timer >= SCORE_OVERLAP_FRAMES:
-            self.red_player_score += STATIC_CIRCLE_SCORE_POINTS
+            self.red_player_score += 2  # Goal = 2 points
             self.trigger_circle_pulse("red")  # Trigger red circle pulse
             self._respawn_blue_square()
             self.projectiles.clear()  # Remove all projectiles after a goal
             self.red_circle_overlap_timer = 0
             print(
-                f"Red player scores {STATIC_CIRCLE_SCORE_POINTS} points! Total: {self.red_player_score}"
+                f"Red player scores 2 points for a goal! Total: {self.red_player_score}"
             )
 
         if self.purple_circle_overlap_timer >= SCORE_OVERLAP_FRAMES:
-            self.purple_player_score += STATIC_CIRCLE_SCORE_POINTS
+            self.purple_player_score += 2  # Goal = 2 points
             self.trigger_circle_pulse("purple")  # Trigger purple circle pulse
             self._respawn_blue_square()
             self.projectiles.clear()  # Remove all projectiles after a goal
             self.purple_circle_overlap_timer = 0
             print(
-                f"Purple player scores {STATIC_CIRCLE_SCORE_POINTS} points! Total: {self.purple_player_score}"
+                f"Purple player scores 2 points for a goal! Total: {self.purple_player_score}"
             )
 
     def _respawn_blue_square(self):
