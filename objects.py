@@ -77,6 +77,17 @@ class RedDot:
         painter.save()
         painter.translate(screen_x, screen_y)
         painter.rotate(ship_angle - 90)  # SVG points up, so 0 deg = up
+        # Flash yellow with a pulsing effect if pulsing (damage)
+        if self.is_pulsing():
+            pulse_phase = (
+                SQUARE_PULSE_DURATION - self.pulse_timer
+            ) / SQUARE_PULSE_DURATION
+            pulse = 0.5 * (1 + math.sin(pulse_phase * math.pi * 2))  # 0..1
+            alpha = int(100 + 100 * pulse)  # Range: 100..200
+            flash_color = QColor(255, 255, 100, alpha)
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(flash_color)
+            painter.drawEllipse(rect)
         self.svg_renderer.render(painter, rect)
         painter.restore()
 
@@ -180,6 +191,17 @@ class BlueSquare:
         painter.save()
         painter.translate(screen_x, screen_y)
         painter.rotate(math.degrees(self.angle))
+        # Flash light blue with a pulsing effect if pulsing (collision)
+        if self.is_pulsing():
+            pulse_phase = (
+                SQUARE_PULSE_DURATION - self.pulse_timer
+            ) / SQUARE_PULSE_DURATION
+            pulse = 0.5 * (1 + math.sin(pulse_phase * math.pi * 2))  # 0..1
+            alpha = int(80 + 100 * pulse)  # Range: 80..180
+            flash_color = QColor(120, 200, 255, alpha)
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(flash_color)
+            painter.drawRect(rect)
         self.svg_renderer.render(painter, rect)
         painter.restore()
 
@@ -664,6 +686,17 @@ class PurpleDot(RedDot):
         painter.save()
         painter.translate(screen_x, screen_y)
         painter.rotate(ship_angle - 90)  # SVG points up, so 0 deg = up
+        # Flash yellow with a pulsing effect if pulsing (damage)
+        if self.is_pulsing():
+            pulse_phase = (
+                SQUARE_PULSE_DURATION - self.pulse_timer
+            ) / SQUARE_PULSE_DURATION
+            pulse = 0.5 * (1 + math.sin(pulse_phase * math.pi * 2))  # 0..1
+            alpha = int(100 + 100 * pulse)  # Range: 100..200
+            flash_color = QColor(255, 255, 100, alpha)
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(flash_color)
+            painter.drawEllipse(rect)
         self.svg_renderer.render(painter, rect)
         painter.restore()
 
