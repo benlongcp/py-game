@@ -851,6 +851,7 @@ class GameEngine:
             self.red_player_score += STATIC_CIRCLE_SCORE_POINTS
             self.trigger_circle_pulse("red")  # Trigger red circle pulse
             self._respawn_blue_square()
+            self.projectiles.clear()  # Remove all projectiles after a goal
             self.red_circle_overlap_timer = 0
             print(
                 f"Red player scores {STATIC_CIRCLE_SCORE_POINTS} points! Total: {self.red_player_score}"
@@ -860,6 +861,7 @@ class GameEngine:
             self.purple_player_score += STATIC_CIRCLE_SCORE_POINTS
             self.trigger_circle_pulse("purple")  # Trigger purple circle pulse
             self._respawn_blue_square()
+            self.projectiles.clear()  # Remove all projectiles after a goal
             self.purple_circle_overlap_timer = 0
             print(
                 f"Purple player scores {STATIC_CIRCLE_SCORE_POINTS} points! Total: {self.purple_player_score}"
