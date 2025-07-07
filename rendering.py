@@ -641,7 +641,9 @@ class Renderer:
         painter.restore()
 
     @staticmethod
-    def draw_static_circles(painter, camera_x, camera_y, view_width, view_height):
+    def draw_static_circles(
+        painter, camera_x, camera_y, view_width, view_height, game_engine=None
+    ):
         """
         Draw the static decorative circles (red and purple).
 
@@ -649,6 +651,7 @@ class Renderer:
             painter: QPainter instance
             camera_x, camera_y: Camera position in world coordinates
             view_width, view_height: Dimensions of the view area
+            game_engine: Game engine instance for pulse effects (optional)
         """
         # Import here to avoid circular imports
         from objects import StaticRedCircle, StaticPurpleCircle
@@ -657,21 +660,55 @@ class Renderer:
         red_circle = StaticRedCircle()
         purple_circle = StaticPurpleCircle()
 
+        # Get pulse state from game engine if available
+        pulse_state = None
+        if game_engine:
+            pulse_state = game_engine.get_circle_pulse_state()
+
         # Draw red circle if visible
         if red_circle.is_visible(camera_x, camera_y, view_width, view_height):
+            is_pulsing = (
+                pulse_state and pulse_state["active"] and pulse_state["circle"] == "red"
+            )
             Renderer._draw_static_circle(
-                painter, red_circle, camera_x, camera_y, view_width, view_height
+                painter,
+                red_circle,
+                camera_x,
+                camera_y,
+                view_width,
+                view_height,
+                is_pulsing,
+                pulse_state,
             )
 
         # Draw purple circle if visible
         if purple_circle.is_visible(camera_x, camera_y, view_width, view_height):
+            is_pulsing = (
+                pulse_state
+                and pulse_state["active"]
+                and pulse_state["circle"] == "purple"
+            )
             Renderer._draw_static_circle(
-                painter, purple_circle, camera_x, camera_y, view_width, view_height
+                painter,
+                purple_circle,
+                camera_x,
+                camera_y,
+                view_width,
+                view_height,
+                is_pulsing,
+                pulse_state,
             )
 
     @staticmethod
     def _draw_static_circle(
-        painter, circle, camera_x, camera_y, view_width, view_height
+        painter,
+        circle,
+        camera_x,
+        camera_y,
+        view_width,
+        view_height,
+        is_pulsing=False,
+        pulse_state=None,
     ):
         """
         Draw a single static circle.
@@ -681,23 +718,58 @@ class Renderer:
             circle: StaticCircle instance
             camera_x, camera_y: Camera position in world coordinates
             view_width, view_height: Dimensions of the view area
+            is_pulsing: Whether this circle is currently pulsing
+            pulse_state: Pulse state information
         """
         # Get screen position
         screen_x, screen_y = circle.get_screen_position(
             camera_x, camera_y, view_width, view_height
         )
 
-        # Set up pen and brush
-        painter.setPen(QPen(QColor(*circle.outline_color), 3))
-        painter.setBrush(QBrush(QColor(*circle.color)))
+        # Set up pen and brush with pulse effect
+        if is_pulsing and pulse_state:
+            # Calculate pulse intensity based on timer
+            progress = pulse_state["timer"] / pulse_state["duration"]
+            # Use a sine wave for smooth pulsing effect
+            import math
 
-        # Draw the circle
-        painter.drawEllipse(
-            int(screen_x - circle.radius),
-            int(screen_y - circle.radius),
-            int(circle.radius * 2),
-            int(circle.radius * 2),
-        )
+            pulse_intensity = abs(
+                math.sin(progress * math.pi * 4)
+            )  # 4 pulses over the duration
+
+            # White pulse overlay
+            white_alpha = int(pulse_intensity * 150)  # 0-150 alpha for white overlay
+
+            # Draw the normal circle first
+            painter.setPen(QPen(QColor(*circle.outline_color), 3))
+            painter.setBrush(QBrush(QColor(*circle.color)))
+            painter.drawEllipse(
+                int(screen_x - circle.radius),
+                int(screen_y - circle.radius),
+                int(circle.radius * 2),
+                int(circle.radius * 2),
+            )
+
+            # Draw white pulse overlay
+            pulse_color = QColor(255, 255, 255, white_alpha)
+            painter.setPen(QPen(pulse_color, 3))
+            painter.setBrush(QBrush(pulse_color))
+            painter.drawEllipse(
+                int(screen_x - circle.radius),
+                int(screen_y - circle.radius),
+                int(circle.radius * 2),
+                int(circle.radius * 2),
+            )
+        else:
+            # Normal drawing without pulse
+            painter.setPen(QPen(QColor(*circle.outline_color), 3))
+            painter.setBrush(QBrush(QColor(*circle.color)))
+            painter.drawEllipse(
+                int(screen_x - circle.radius),
+                int(screen_y - circle.radius),
+                int(circle.radius * 2),
+                int(circle.radius * 2),
+            )
 
     @staticmethod
     def draw_gravitational_dots(painter, camera_x, camera_y, view_width, view_height):

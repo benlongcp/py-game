@@ -336,7 +336,9 @@ class SplitScreenView(QWidget):
         Renderer.draw_vignette_gradient(
             painter, camera_x, camera_y, view_center_x, view_center_y
         )
-        Renderer.draw_static_circles(painter, camera_x, camera_y, width, height)
+        Renderer.draw_static_circles(
+            painter, camera_x, camera_y, width, height, self.game_engine
+        )
         Renderer.draw_gravitational_dots(painter, camera_x, camera_y, width, height)
         Renderer.draw_blue_square(
             painter, self.game_engine.blue_square, camera_x, camera_y, width, height

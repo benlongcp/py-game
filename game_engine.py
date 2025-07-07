@@ -153,6 +153,12 @@ class GameEngine:
         self.score_pulse_duration = 30  # frames
         self.score_pulse_player = None  # 1 or 2
 
+        # Circle pulse system for goal scoring visual feedback
+        self.circle_pulse_active = False
+        self.circle_pulse_timer = 0
+        self.circle_pulse_duration = 60  # frames (longer than score pulse)
+        self.circle_pulse_circle = None  # "red" or "purple"
+
     def set_gamepad_manager(self, gamepad_manager):
         """Set the gamepad manager reference."""
         self._gamepad_manager = gamepad_manager
@@ -343,6 +349,8 @@ class GameEngine:
         self.gamepad2_shoot_pressed = False
         # Reset score pulse system
         self.reset_score_pulse()
+        # Reset circle pulse system
+        self.reset_circle_pulse()
         # Keep gamepad manager reference if set
         if hasattr(self, "_gamepad_manager"):
             self.set_gamepad_manager(self._gamepad_manager)
@@ -369,6 +377,8 @@ class GameEngine:
         self.gamepad2_shoot_pressed = False
         # Reset score pulse system
         self.reset_score_pulse()
+        # Reset circle pulse system
+        self.reset_circle_pulse()
         if hasattr(self, "_gamepad_manager"):
             self.set_gamepad_manager(self._gamepad_manager)
         self.apply_powerup_effects()
@@ -383,6 +393,7 @@ class GameEngine:
         self._update_hit_points()
         self._update_scoring()
         self.update_score_pulse()  # Update score pulse effects
+        self.update_circle_pulse()  # Update circle pulse effects
 
     def _handle_input(self):
         """Process input for both players."""
@@ -838,7 +849,7 @@ class GameEngine:
         # Check for scoring conditions (award 2 points for static circle scoring)
         if self.red_circle_overlap_timer >= SCORE_OVERLAP_FRAMES:
             self.red_player_score += STATIC_CIRCLE_SCORE_POINTS
-            self.trigger_score_pulse(1)  # Trigger score pulse for red player
+            self.trigger_circle_pulse("red")  # Trigger red circle pulse
             self._respawn_blue_square()
             self.red_circle_overlap_timer = 0
             print(
@@ -847,7 +858,7 @@ class GameEngine:
 
         if self.purple_circle_overlap_timer >= SCORE_OVERLAP_FRAMES:
             self.purple_player_score += STATIC_CIRCLE_SCORE_POINTS
-            self.trigger_score_pulse(2)  # Trigger score pulse for purple player
+            self.trigger_circle_pulse("purple")  # Trigger purple circle pulse
             self._respawn_blue_square()
             self.purple_circle_overlap_timer = 0
             print(
@@ -891,6 +902,36 @@ class GameEngine:
         self.score_pulse_active = False
         self.score_pulse_timer = 0
         self.score_pulse_player = None
+
+    def trigger_circle_pulse(self, circle_color):
+        """Trigger a circle pulse effect for visual feedback."""
+        self.circle_pulse_active = True
+        self.circle_pulse_timer = 0
+        self.circle_pulse_circle = circle_color
+
+    def update_circle_pulse(self):
+        """Update the circle pulse timer."""
+        if self.circle_pulse_active:
+            self.circle_pulse_timer += 1
+            if self.circle_pulse_timer >= self.circle_pulse_duration:
+                self.circle_pulse_active = False
+                self.circle_pulse_timer = 0
+                self.circle_pulse_circle = None
+
+    def get_circle_pulse_state(self):
+        """Get the current circle pulse state for rendering."""
+        return {
+            "active": self.circle_pulse_active,
+            "timer": self.circle_pulse_timer,
+            "duration": self.circle_pulse_duration,
+            "circle": self.circle_pulse_circle,
+        }
+
+    def reset_circle_pulse(self):
+        """Reset the circle pulse system."""
+        self.circle_pulse_active = False
+        self.circle_pulse_timer = 0
+        self.circle_pulse_circle = None
 
     def get_red_player_score(self):
         """Get the red player's score."""
