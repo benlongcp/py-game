@@ -7,7 +7,7 @@ Supports both keyboard and gamepad input.
 import time
 import random
 from PyQt6.QtWidgets import QWidget, QHBoxLayout
-from PyQt6.QtGui import QPainter, QPen, QBrush, QColor, QFont, QPixmap
+from PyQt6.QtGui import QPainter, QPen, QBrush, QColor, QFont, QPixmap, QFontMetrics
 from PyQt6.QtCore import Qt, QTimer
 from config import *
 from game_engine import GameEngine
@@ -46,6 +46,15 @@ class SplitScreenView(QWidget):
 
         dialog = QDialog(self)
         dialog.setWindowTitle("Game Over & Powerup Selection")
+        # Set dark theme for dialog and all children
+        dialog.setStyleSheet(
+            """
+            QDialog { background-color: #222; color: #fff; }
+            QLabel { color: #fff; }
+            QPushButton { background-color: #333; color: #fff; border: 1px solid #555; padding: 6px 12px; }
+            QPushButton:hover { background-color: #444; }
+        """
+        )
         layout = QVBoxLayout()
         winner = "Player 1 (Red)" if self.game_over_winner == 1 else "Player 2 (Purple)"
         loser = "Player 2 (Purple)" if self.game_over_winner == 1 else "Player 1 (Red)"
@@ -108,6 +117,15 @@ class SplitScreenView(QWidget):
 
         dialog = QDialog(self)
         dialog.setWindowTitle("Select a Powerup")
+        # Set dark theme for dialog and all children
+        dialog.setStyleSheet(
+            """
+            QDialog { background-color: #222; color: #fff; }
+            QLabel { color: #fff; }
+            QPushButton { background-color: #333; color: #fff; border: 1px solid #555; padding: 6px 12px; }
+            QPushButton:hover { background-color: #444; }
+        """
+        )
         layout = QVBoxLayout()
         loser = 2 if self.game_over_winner == 1 else 1
         label = QLabel(f"Player {loser}, choose a powerup:")
@@ -230,8 +248,10 @@ class SplitScreenView(QWidget):
         window_width = self.width()
         window_height = self.height()
         divider_width = 20
-        view_width = (window_width - divider_width) // 2
+
+        # Use full height since FPS counter is disabled
         view_height = window_height
+        view_width = (window_width - divider_width) // 2
 
         # --- Game Over Check ---
         if not self.game_over:
@@ -277,12 +297,86 @@ class SplitScreenView(QWidget):
             overlay_color=flash_color1,
         )
 
-        # Draw powerup status row at the bottom for both players
-        # Powerup status is now drawn per-player in _draw_player_view
-
-        # Draw FPS counter overlay at bottom of window (if enabled)
+        # Draw FPS counter at the bottom center of the window
         if SHOW_FPS_COUNTER:
-            self._draw_fps_counter(painter)
+            self._draw_fps_counter_bottom_center(painter)
+
+    def _draw_fps_counter_bottom_center(self, painter):
+        """Draw FPS counter at the horizontal center of the window at the very bottom."""
+        painter.save()
+
+        # Reset clipping to draw on the full window
+        painter.setClipping(False)
+
+        # Set up colors from config
+        text_color = QColor(*FPS_COUNTER_COLOR)
+
+        # Set font
+        font = QFont("Arial", 12, QFont.Weight.Bold)
+        painter.setFont(font)
+
+        # Calculate text metrics
+        fps_text = f"FPS: {self.fps_display:.1f}"
+        font_metrics = painter.fontMetrics()
+        text_width = font_metrics.horizontalAdvance(fps_text)
+
+        # Position at left side, at the very bottom
+        window_width = self.width()
+        window_height = self.height()
+
+        # Left-justify with margin from left edge
+        x = 10  # 10px margin from left edge
+        y = window_height - 8  # 8px margin from bottom edge
+
+        # Draw text
+        painter.setPen(QPen(text_color))
+        painter.drawText(x, y, fps_text)
+
+        painter.restore()
+
+    def _draw_fps_counter_centered_bottom(self, painter):
+        """Draw FPS counter in a dedicated row at the bottom, centered between split screens."""
+        painter.save()
+
+        # Reset clipping to draw on the full window
+        painter.setClipping(False)
+
+        # Set up colors from config
+        row_background = QColor(*FPS_COUNTER_BACKGROUND)
+        text_color = QColor(*FPS_COUNTER_COLOR)
+
+        # Set font
+        font = QFont("Arial", 14, QFont.Weight.Bold)
+        painter.setFont(font)
+
+        # Calculate text metrics
+        fps_text = f"FPS: {self.fps_display:.1f}"
+        font_metrics = painter.fontMetrics()
+        text_width = font_metrics.horizontalAdvance(fps_text)
+        text_height = font_metrics.height()
+
+        # Define row height
+        row_height = max(36, text_height + 10)
+        window_width = self.width()
+        window_height = self.height()
+
+        divider_width = 20
+        row_y = window_height - row_height
+
+        # Draw full-width background row
+        painter.setBrush(QBrush(row_background))
+        painter.setPen(QPen(QColor(0, 0, 0, 0)))  # No border
+        painter.drawRect(0, row_y, window_width, row_height)
+
+        # Draw FPS text centered in the full container (window)
+        center_x = window_width // 2
+        x = center_x - text_width // 2
+        # Properly center text vertically in the row
+        y = row_y + row_height // 2 + text_height // 2 - font_metrics.descent()
+        painter.setPen(QPen(text_color))
+        painter.drawText(x, y, fps_text)
+
+        painter.restore()
 
     def _draw_player_view(
         self,
@@ -639,11 +733,12 @@ class SplitScreenView(QWidget):
         text_width = font_metrics.horizontalAdvance(fps_text)
         text_height = font_metrics.height()
 
-        # Position just below the powerup status rows, centered
+        # Centered at the bottom, with margin
         window_width = self.width()
         window_height = self.height()
-        y = window_height - 10  # 10px from bottom
+        margin = 20  # Space from bottom edge
         x = (window_width - text_width) // 2
+        y = window_height - margin - text_height
 
         # Draw background rectangle
         padding = 8
@@ -660,7 +755,8 @@ class SplitScreenView(QWidget):
 
         # Draw text
         painter.setPen(QPen(text_color))
-        painter.drawText(x, y + font_metrics.ascent(), fps_text)
+        # Vertically center text in the background rectangle
+        painter.drawText(x, y + text_height - font_metrics.descent(), fps_text)
 
         painter.restore()
 
