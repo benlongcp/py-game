@@ -12,12 +12,12 @@ from config import *
 from physics import PhysicsEngine
 
 # --- SVG ASSET CONSTANTS ---
-SVG_RED_SHIP = '''<svg viewBox="0 0 24 24" width="96" height="96"><rect x="8" y="2" width="8" height="4" fill="#FF0000" /><rect x="6" y="6" width="12" height="6" fill="#FF0000" /><rect x="4" y="12" width="16" height="4" fill="#FF0000" /><rect x="10" y="8" width="4" height="2" fill="#ADD8E6" /><rect x="6" y="16" width="4" height="4" fill="#8B0000" /><rect x="14" y="16" width="4" height="4" fill="#8B0000" /><rect x="7" y="20" width="2" height="2" fill="#FFA500" /><rect x="15" y="20" width="2" height="2" fill="#FFA500" /></svg>'''
-SVG_PURPLE_SHIP = '''<svg viewBox="0 0 24 24" width="96" height="96"><rect x="8" y="2" width="8" height="4" fill="#800080" /><rect x="6" y="6" width="12" height="6" fill="#800080" /><rect x="4" y="12" width="16" height="4" fill="#800080" /><rect x="10" y="8" width="4" height="2" fill="#B0E0E6" /><rect x="6" y="16" width="4" height="4" fill="#4B0082" /><rect x="14" y="16" width="4" height="4" fill="#4B0082" /><rect x="7" y="20" width="2" height="2" fill="#FFD700" /><rect x="15" y="20" width="2" height="2" fill="#FFD700" /></svg>'''
-SVG_BLUE_CUBE = '''<svg viewBox="0 0 24 24" width="96" height="96"><rect x="4" y="8" width="16" height="12" fill="#0000FF" /><polygon points="4,8 8,4 20,4 16,8" fill="#4169E1" /><polygon points="20,4 20,12 16,16 16,8" fill="#0000CD" /><rect x="6" y="10" width="4" height="2" fill="#ADD8E6" /></svg>'''
-SVG_RED_GOAL = '''<svg viewBox="0 0 24 24" width="96" height="96"><circle cx="12" cy="12" r="10" fill="#000000" /><circle cx="12" cy="12" r="8" fill="#330000" /><circle cx="12" cy="12" r="6" fill="#660000" /><circle cx="12" cy="12" r="4" fill="#990000" /><circle cx="12" cy="12" r="2" fill="#FF0000" /><rect x="10" y="2" width="1" height="1" fill="#FF0000" /><rect x="2" y="10" width="1" height="1" fill="#FF0000" /><rect x="18" y="10" width="1" height="1" fill="#FF0000" /><rect x="10" y="18" width="1" height="1" fill="#FF0000" /></svg>'''
-SVG_PURPLE_GOAL = '''<svg viewBox="0 0 24 24" width="96" height="96"><circle cx="12" cy="12" r="10" fill="#000000" /><circle cx="12" cy="12" r="8" fill="#330033" /><circle cx="12" cy="12" r="6" fill="#660066" /><circle cx="12" cy="12" r="4" fill="#990099" /><circle cx="12" cy="12" r="2" fill="#800080" /><rect x="10" y="2" width="1" height="1" fill="#800080" /><rect x="2" y="10" width="1" height="1" fill="#800080" /><rect x="18" y="10" width="1" height="1" fill="#800080" /><rect x="10" y="18" width="1" height="1" fill="#800080" /></svg>'''
-SVG_PROJECTILE_ICON = '''<svg viewBox="0 0 24 24" width="96" height="96"><rect x="10" y="10" width="4" height="4" fill="#FFFF00" /><rect x="8" y="10" width="2" height="4" fill="#FFD700" /><rect x="14" y="10" width="2" height="4" fill="#FFD700" /><rect x="10" y="8" width="4" height="2" fill="#FFD700" /><rect x="10" y="14" width="4" height="2" fill="#FFD700" /><rect x="9" y="9" width="1" height="1" fill="#FFEC8B" /><rect x="14" y="9" width="1" height="1" fill="#FFEC8B" /><rect x="9" y="14" width="1" height="1" fill="#FFEC8B" /><rect x="14" y="14" width="1" height="1" fill="#FFEC8B" /></svg>'''
+SVG_RED_SHIP = """<svg viewBox="0 0 24 24" width="96" height="96"><rect x="8" y="2" width="8" height="4" fill="#FF0000" /><rect x="6" y="6" width="12" height="6" fill="#FF0000" /><rect x="4" y="12" width="16" height="4" fill="#FF0000" /><rect x="10" y="8" width="4" height="2" fill="#ADD8E6" /><rect x="6" y="16" width="4" height="4" fill="#8B0000" /><rect x="14" y="16" width="4" height="4" fill="#8B0000" /><rect x="7" y="20" width="2" height="2" fill="#FFA500" /><rect x="15" y="20" width="2" height="2" fill="#FFA500" /></svg>"""
+SVG_PURPLE_SHIP = """<svg viewBox="0 0 24 24" width="96" height="96"><rect x="8" y="2" width="8" height="4" fill="#800080" /><rect x="6" y="6" width="12" height="6" fill="#800080" /><rect x="4" y="12" width="16" height="4" fill="#800080" /><rect x="10" y="8" width="4" height="2" fill="#B0E0E6" /><rect x="6" y="16" width="4" height="4" fill="#4B0082" /><rect x="14" y="16" width="4" height="4" fill="#4B0082" /><rect x="7" y="20" width="2" height="2" fill="#FFD700" /><rect x="15" y="20" width="2" height="2" fill="#FFD700" /></svg>"""
+SVG_BLUE_CUBE = """<svg viewBox="0 0 24 24" width="96" height="96"><rect x="4" y="8" width="16" height="12" fill="#0000FF" /><polygon points="4,8 8,4 20,4 16,8" fill="#4169E1" /><polygon points="20,4 20,12 16,16 16,8" fill="#0000CD" /><rect x="6" y="10" width="4" height="2" fill="#ADD8E6" /></svg>"""
+SVG_RED_GOAL = """<svg viewBox="0 0 24 24" width="96" height="96"><circle cx="12" cy="12" r="10" fill="#000000" /><circle cx="12" cy="12" r="8" fill="#330000" /><circle cx="12" cy="12" r="6" fill="#660000" /><circle cx="12" cy="12" r="4" fill="#990000" /><circle cx="12" cy="12" r="2" fill="#FF0000" /><rect x="10" y="2" width="1" height="1" fill="#FF0000" /><rect x="2" y="10" width="1" height="1" fill="#FF0000" /><rect x="18" y="10" width="1" height="1" fill="#FF0000" /><rect x="10" y="18" width="1" height="1" fill="#FF0000" /></svg>"""
+SVG_PURPLE_GOAL = """<svg viewBox="0 0 24 24" width="96" height="96"><circle cx="12" cy="12" r="10" fill="#000000" /><circle cx="12" cy="12" r="8" fill="#330033" /><circle cx="12" cy="12" r="6" fill="#660066" /><circle cx="12" cy="12" r="4" fill="#990099" /><circle cx="12" cy="12" r="2" fill="#800080" /><rect x="10" y="2" width="1" height="1" fill="#800080" /><rect x="2" y="10" width="1" height="1" fill="#800080" /><rect x="18" y="10" width="1" height="1" fill="#800080" /><rect x="10" y="18" width="1" height="1" fill="#800080" /></svg>"""
+SVG_PROJECTILE_ICON = """<svg viewBox="0 0 24 24" width="96" height="96"><rect x="10" y="10" width="4" height="4" fill="#FFFF00" /><rect x="8" y="10" width="2" height="4" fill="#FFD700" /><rect x="14" y="10" width="2" height="4" fill="#FFD700" /><rect x="10" y="8" width="4" height="2" fill="#FFD700" /><rect x="10" y="14" width="4" height="2" fill="#FFD700" /><rect x="9" y="9" width="1" height="1" fill="#FFEC8B" /><rect x="14" y="9" width="1" height="1" fill="#FFEC8B" /><rect x="9" y="14" width="1" height="1" fill="#FFEC8B" /><rect x="14" y="14" width="1" height="1" fill="#FFEC8B" /></svg>"""
 
 
 class RedDot:
@@ -42,17 +42,32 @@ class RedDot:
         self.pulse_timer = 0  # Timer for HP damage pulse effect
 
         # SVG Renderer for red ship
-        self.svg_renderer = QSvgRenderer(QByteArray(SVG_RED_SHIP.encode('utf-8')))
+        self.svg_renderer = QSvgRenderer(QByteArray(SVG_RED_SHIP.encode("utf-8")))
+
+        # Store last movement angle and size for rendering when stationary
+        # At start, orient toward center of gameplay area
+        dx = 0 - self.virtual_x
+        dy = 0 - self.virtual_y
+        if dx == 0 and dy == 0:
+            self._last_angle = 180  # Default up
+        else:
+            self._last_angle = math.degrees(math.atan2(dy, dx)) + 180
+        self._last_size = self.radius * 2 * 1.5
 
     def draw_svg(self, painter, screen_x, screen_y, scale=1.0, angle=None):
         # Draw the SVG centered at (screen_x, screen_y), scaled to 150% of the momentum triangle size, and rotated 180deg from movement
         momentum_info = self.get_momentum_info()
         if momentum_info:
-            ship_size = momentum_info["size"] * 2.2 * 1.5  # 50% larger (same for both ships)
+            ship_size = (
+                momentum_info["size"] * 2.2 * 1.5
+            )  # 50% larger (same for both ships)
             ship_angle = math.degrees(momentum_info["angle"]) + 180
+            # Store last movement angle and size
+            self._last_angle = ship_angle
+            self._last_size = ship_size
         else:
-            ship_size = self.radius * 2 * scale * 1.5
-            ship_angle = 180
+            ship_size = self._last_size
+            ship_angle = self._last_angle
         rect = QRectF(-ship_size / 2, -ship_size / 2, ship_size, ship_size)
         painter.save()
         painter.translate(screen_x, screen_y)
@@ -162,6 +177,7 @@ class BlueSquare:
         painter.rotate(math.degrees(self.angle))
         self.svg_renderer.render(painter, rect)
         painter.restore()
+
     """Represents the blue square obstacle with physics."""
 
     def __init__(self, x=INITIAL_SQUARE_X, y=INITIAL_SQUARE_Y):
@@ -172,8 +188,8 @@ class BlueSquare:
         # Linear physics properties
         self.velocity_x = 0.0
         self.velocity_y = 0.0
-        self.mass = SQUARE_MASS
-        self.size = DOT_RADIUS * SQUARE_SIZE_MULTIPLIER  # Rotational physics properties
+        self.mass = SQUARE_MASS * 2  # Increased mass by 100%
+        self.size = DOT_RADIUS * SQUARE_SIZE_MULTIPLIER * 1.5  # Increased size by 50%
         self.angle = 0.0  # Current rotation angle in radians
         self.angular_velocity = 0.0  # Angular velocity in radians per frame
         self.moment_of_inertia = PhysicsEngine.calculate_moment_of_inertia(
@@ -182,7 +198,7 @@ class BlueSquare:
         self.pulse_timer = 0  # Timer for collision pulse effect
 
         # SVG Renderer for blue cube
-        self.svg_renderer = QSvgRenderer(QByteArray(SVG_BLUE_CUBE.encode('utf-8')))
+        self.svg_renderer = QSvgRenderer(QByteArray(SVG_BLUE_CUBE.encode("utf-8")))
 
     def update_physics(self):
         """Update velocity, position, and rotation with friction."""
@@ -368,6 +384,7 @@ class Projectile:
         painter.translate(screen_x, screen_y)
         self.svg_renderer.render(painter, rect)
         painter.restore()
+
     """Represents a green projectile shot by a player."""
 
     def __init__(self, x, y, velocity_x, velocity_y, owner_id="red"):
@@ -392,7 +409,9 @@ class Projectile:
         self.bounce_count = 0
 
         # SVG Renderer for projectile icon
-        self.svg_renderer = QSvgRenderer(QByteArray(SVG_PROJECTILE_ICON.encode('utf-8')))
+        self.svg_renderer = QSvgRenderer(
+            QByteArray(SVG_PROJECTILE_ICON.encode("utf-8"))
+        )
 
         # For multi-shot: projectiles are initially 'grouped' and cannot interact until separated
         self.just_launched = True
@@ -613,17 +632,29 @@ class PurpleDot(RedDot):
     def __init__(self, x=PURPLE_PLAYER_INITIAL_X, y=PURPLE_PLAYER_INITIAL_Y):
         super().__init__(x, y)
         # SVG Renderer for purple ship
-        self.svg_renderer = QSvgRenderer(QByteArray(SVG_PURPLE_SHIP.encode('utf-8')))
+        self.svg_renderer = QSvgRenderer(QByteArray(SVG_PURPLE_SHIP.encode("utf-8")))
+        # Store last movement angle and size for rendering when stationary
+        dx = 0 - self.virtual_x
+        dy = 0 - self.virtual_y
+        if dx == 0 and dy == 0:
+            self._last_angle = 180
+        else:
+            self._last_angle = math.degrees(math.atan2(dy, dx)) + 180
+        self._last_size = self.radius * 2 * 1.5
 
     def draw_svg(self, painter, screen_x, screen_y, scale=1.0, angle=None):
         # Draw the SVG centered at (screen_x, screen_y), scaled to match the red ship, and rotated 180deg from movement
         momentum_info = self.get_momentum_info()
         if momentum_info:
-            ship_size = momentum_info["size"] * 2.2 * 1.5  # 50% larger (same for both ships)
+            ship_size = (
+                momentum_info["size"] * 2.2 * 1.5
+            )  # 50% larger (same for both ships)
             ship_angle = math.degrees(momentum_info["angle"]) + 180
+            self._last_angle = ship_angle
+            self._last_size = ship_size
         else:
-            ship_size = self.radius * 2 * scale * 1.5
-            ship_angle = 180
+            ship_size = self._last_size
+            ship_angle = self._last_angle
         rect = QRectF(-ship_size / 2, -ship_size / 2, ship_size, ship_size)
         painter.save()
         painter.translate(screen_x, screen_y)
@@ -717,7 +748,7 @@ class StaticRedCircle(StaticCircle):
             STATIC_RED_CIRCLE_COLOR,
             STATIC_RED_CIRCLE_OUTLINE,
         )
-        self.svg_renderer = QSvgRenderer(QByteArray(SVG_RED_GOAL.encode('utf-8')))
+        self.svg_renderer = QSvgRenderer(QByteArray(SVG_RED_GOAL.encode("utf-8")))
 
     def draw_svg(self, painter, screen_x, screen_y, size=None):
         # Draw the SVG centered at (screen_x, screen_y), scaled to match the circle radius
@@ -739,7 +770,7 @@ class StaticPurpleCircle(StaticCircle):
             STATIC_PURPLE_CIRCLE_COLOR,
             STATIC_PURPLE_CIRCLE_OUTLINE,
         )
-        self.svg_renderer = QSvgRenderer(QByteArray(SVG_PURPLE_GOAL.encode('utf-8')))
+        self.svg_renderer = QSvgRenderer(QByteArray(SVG_PURPLE_GOAL.encode("utf-8")))
 
     def draw_svg(self, painter, screen_x, screen_y, size=None):
         # Draw the SVG centered at (screen_x, screen_y), scaled to match the circle radius

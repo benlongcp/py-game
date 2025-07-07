@@ -694,6 +694,7 @@ class Renderer:
             # Calculate pulse intensity based on timer
             progress = pulse_state["timer"] / pulse_state["duration"]
             import math
+
             pulse_intensity = abs(math.sin(progress * math.pi * 4))
             white_alpha = int(pulse_intensity * 150)
             # Draw SVG goal
