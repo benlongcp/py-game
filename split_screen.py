@@ -6,7 +6,7 @@ Supports both keyboard and gamepad input.
 
 import time
 import random
-from PyQt6.QtWidgets import QWidget, QHBoxLayout
+from PyQt6.QtWidgets import QWidget, QHBoxLayout, QStackedWidget
 from PyQt6.QtGui import QPainter, QPen, QBrush, QColor, QFont, QPixmap, QFontMetrics
 from PyQt6.QtCore import Qt, QTimer
 from config import *
@@ -14,6 +14,30 @@ from game_engine import GameEngine
 from rendering import Renderer
 from gamepad_manager import GamepadManager
 from rate_limiter_ui import RateLimiterUI, StatusDisplay
+from powerup_view import PowerupSelectionView
+
+
+class GameView(QWidget):
+    """Widget for the main split-screen game view."""
+
+    def __init__(self, split_screen_parent):
+        super().__init__()
+        self.split_screen = split_screen_parent
+
+        # Set focus policy to receive keyboard events
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+
+    def paintEvent(self, event):
+        """Paint the split-screen game view."""
+        self.split_screen._paint_game_view(self, event)
+
+    def keyPressEvent(self, event):
+        """Forward key events to split screen."""
+        self.split_screen.keyPressEvent(event)
+
+    def keyReleaseEvent(self, event):
+        """Forward key events to split screen."""
+        self.split_screen.keyReleaseEvent(event)
 
 
 class SplitScreenView(QWidget):
@@ -32,143 +56,41 @@ class SplitScreenView(QWidget):
         self.game_over_winner = winner
         self._flash_timer = 0
         self._flash_on = False
-        self._show_game_over_dialog()
+        self._show_powerup_selection_view()
 
-    def _show_game_over_dialog(self):
-        # Only show the powerup dialog for the losing player, with a reset button included
-        from PyQt6.QtWidgets import (
-            QDialog,
-            QVBoxLayout,
-            QLabel,
-            QPushButton,
-            QHBoxLayout,
-        )
-
-        dialog = QDialog(self)
-        dialog.setWindowTitle("Game Over & Powerup Selection")
-        # Set dark theme for dialog and all children
-        dialog.setStyleSheet(
-            """
-            QDialog { background-color: #222; color: #fff; }
-            QLabel { color: #fff; }
-            QPushButton { background-color: #333; color: #fff; border: 1px solid #555; padding: 6px 12px; }
-            QPushButton:hover { background-color: #444; }
-        """
-        )
-        layout = QVBoxLayout()
-        winner = "Player 1 (Red)" if self.game_over_winner == 1 else "Player 2 (Purple)"
-        loser = "Player 2 (Purple)" if self.game_over_winner == 1 else "Player 1 (Red)"
+    def _show_powerup_selection_view(self):
+        """Show the powerup selection view instead of a dialog."""
         loser_num = 2 if self.game_over_winner == 1 else 1
-        label = QLabel(
-            f"{winner} wins!\n\n{loser} loses.\n\nPlayer {loser_num}, choose a powerup:"
-        )
-        layout.addWidget(label)
-        # List of all possible powerups
-        all_powerups = [
-            ("increase_accel_50", "Increase acceleration by 50%"),
-            ("top_speed_50", "Top speed +50%"),
-            ("projectile_size_50", "Increase projectile size by 50%"),
-            ("plus_1_projectile_per_sec", "+1 projectile/second"),
-            ("projectile_damage_plus_1", "Increase projectile damage by 1"),
-            ("projectile_mass_50", "Increase projectile mass by 50%"),
-            ("projectile_speed_50", "Increase projectile speed by 50%"),
-            ("hp_50", "Increase HP by 50%"),
-            ("double_shot", "Increase projectiles by 1"),
-            ("dot_mass_50", "Increase player dot mass by 50%"),
-            ("goal_gravity_50", "Increase gravitational pull of your goal by 50%"),
-        ]
-        # Pick 3 at random
-        options = random.sample(all_powerups, 3)
-        buttons = []
-        btn_layout = QHBoxLayout()
-        for key, label_text in options:
-            btn = QPushButton(label_text)
-            btn_layout.addWidget(btn)
-            buttons.append((btn, key))
-        layout.addLayout(btn_layout)
+        self.powerup_view.setup_round_end(self.game_over_winner, loser_num)
+        # Switch to powerup selection view
+        self.stacked_widget.setCurrentWidget(self.powerup_view)
 
-        # Add Reset button
-        reset_btn = QPushButton("Reset Game")
-        layout.addWidget(reset_btn)
-
-        dialog.setLayout(layout)
-
-        def select_powerup(powerup):
+    def _on_powerup_selected(self, powerup_key, should_reset):
+        """Handle powerup selection from the powerup view."""
+        if should_reset:
+            # Reset the entire game
+            self._reset_game()
+        else:
+            # Apply the selected powerup
+            loser_num = 2 if self.game_over_winner == 1 else 1
             if loser_num == 1:
-                print(f"[DEBUG] Assigning powerup to Player 1: {powerup}")
-                self.game_engine.player1_powerups.append(powerup)
+                print(f"[DEBUG] Assigning powerup to Player 1: {powerup_key}")
+                self.game_engine.player1_powerups.append(powerup_key)
             else:
-                print(f"[DEBUG] Assigning powerup to Player 2: {powerup}")
-                self.game_engine.player2_powerups.append(powerup)
-            dialog.accept()
+                print(f"[DEBUG] Assigning powerup to Player 2: {powerup_key}")
+                self.game_engine.player2_powerups.append(powerup_key)
+
+            # Continue the game
             self._continue_game()
 
-        def reset_game():
-            dialog.accept()
-            self._reset_game()
-
-        for btn, key in buttons:
-            btn.clicked.connect(lambda checked, k=key: select_powerup(k))
-        reset_btn.clicked.connect(reset_game)
-        dialog.exec()
-
-    def _show_powerup_dialog(self):
-        from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QPushButton
-
-        dialog = QDialog(self)
-        dialog.setWindowTitle("Select a Powerup")
-        # Set dark theme for dialog and all children
-        dialog.setStyleSheet(
-            """
-            QDialog { background-color: #222; color: #fff; }
-            QLabel { color: #fff; }
-            QPushButton { background-color: #333; color: #fff; border: 1px solid #555; padding: 6px 12px; }
-            QPushButton:hover { background-color: #444; }
-        """
-        )
-        layout = QVBoxLayout()
-        loser = 2 if self.game_over_winner == 1 else 1
-        label = QLabel(f"Player {loser}, choose a powerup:")
-        layout.addWidget(label)
-        # List of all possible powerups
-        all_powerups = [
-            ("increase_accel_50", "Increase acceleration by 50%"),
-            ("top_speed_50", "Top speed +50%"),
-            ("projectile_size_50", "Increase projectile size by 50%"),
-            ("plus_1_projectile_per_sec", "+1 projectile/second"),
-            ("projectile_damage_plus_1", "Increase projectile damage by 1"),
-            ("projectile_mass_50", "Increase projectile mass by 50%"),
-            ("hp_50", "Increase HP by 50%"),
-            ("double_shot", "Fire two projectiles simultaneously"),
-            ("dot_mass_50", "Increase player dot mass by 50%"),
-            ("goal_gravity_50", "Increase gravitational pull of your goal by 50%"),
-        ]
-        # Pick 3 at random
-        options = random.sample(all_powerups, 3)
-        buttons = []
-        for key, label_text in options:
-            btn = QPushButton(label_text)
-            layout.addWidget(btn)
-            buttons.append((btn, key))
-        dialog.setLayout(layout)
-
-        def select_powerup(powerup):
-            if loser == 1:
-                self.game_engine.player1_powerups.append(powerup)
-            else:
-                self.game_engine.player2_powerups.append(powerup)
-            dialog.accept()
-
-        for btn, key in buttons:
-            btn.clicked.connect(lambda checked, k=key: select_powerup(k))
-        dialog.exec()
-        self._continue_game()
+        # Switch back to game view
+        self.stacked_widget.setCurrentWidget(self.game_view)
 
     def _continue_game(self):
         self.points_to_win += 3
         self.game_engine.reset_positions_only()
         self._init_game_over_state()
-        self.update()
+        self.game_view.update()
 
     def _reset_game(self):
         self.game_engine.reset_game_state()
@@ -191,10 +113,36 @@ class SplitScreenView(QWidget):
         self.fps_display = 0.0
         self.last_fps_time = time.time()
 
+        self._setup_stacked_widget()
         self._setup_window()
         self._setup_timer()
         self._setup_gamepad_timer()
         self._init_game_over_state()
+
+    def _setup_stacked_widget(self):
+        """Setup the stacked widget for switching between game view and powerup view."""
+        # Create stacked widget
+        self.stacked_widget = QStackedWidget()
+
+        # Create game view
+        self.game_view = GameView(self)
+
+        # Create powerup selection view
+        self.powerup_view = PowerupSelectionView()
+        self.powerup_view.powerup_selected.connect(self._on_powerup_selected)
+
+        # Add widgets to stack
+        self.stacked_widget.addWidget(self.game_view)
+        self.stacked_widget.addWidget(self.powerup_view)
+
+        # Set initial view to game view
+        self.stacked_widget.setCurrentWidget(self.game_view)
+
+        # Set layout
+        layout = QHBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(self.stacked_widget)
+        self.setLayout(layout)
 
     def _init_grid_cache(self):
         """Initialize the grid cache for both player views."""
@@ -242,68 +190,9 @@ class SplitScreenView(QWidget):
         pass
 
     def paintEvent(self, event):
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-
-        # Update FPS counter
-        self._update_fps()
-
-        # Calculate dynamic view dimensions
-        window_width = self.width()
-        window_height = self.height()
-        divider_width = 20
-
-        # Use full height since FPS counter is disabled
-        view_height = window_height
-        view_width = (window_width - divider_width) // 2
-
-        # --- Game Over Check ---
-        if not self.game_over:
-            red_score = self.game_engine.get_red_player_score()
-            purple_score = self.game_engine.get_purple_player_score()
-            if red_score >= self.points_to_win:
-                self._start_game_over(1)
-            elif purple_score >= self.points_to_win:
-                self._start_game_over(2)
-        # --- Flashing Effect ---
-        flash_color1 = None
-        flash_color2 = None
-        if self.game_over:
-            self._flash_timer += 1
-            if self._flash_timer % 20 == 0:
-                self._flash_on = not self._flash_on
-            if self._flash_on:
-                if self.game_over_winner == 1:
-                    flash_color1 = QColor(0, 255, 0, 120)  # Green overlay
-                    flash_color2 = QColor(255, 0, 0, 120)  # Red overlay
-                else:
-                    flash_color1 = QColor(255, 0, 0, 120)
-                    flash_color2 = QColor(0, 255, 0, 120)
-
-        # Draw Player 2 view (left side - Purple)
-        self._draw_player_view(
-            painter, 2, 0, 0, view_width, view_height, overlay_color=flash_color2
-        )
-
-        # Draw divider line
-        painter.setPen(QPen(QColor(100, 100, 100), 3))
-        divider_x = view_width + divider_width // 2
-        painter.drawLine(divider_x, 0, divider_x, view_height)
-
-        # Draw Player 1 view (right side - Red)
-        self._draw_player_view(
-            painter,
-            1,
-            view_width + divider_width,
-            0,
-            view_width,
-            view_height,
-            overlay_color=flash_color1,
-        )
-
-        # Draw FPS counter at the bottom center of the window
-        if SHOW_FPS_COUNTER:
-            self._draw_fps_counter_bottom_center(painter)
+        """Handle paint events for the stacked widget."""
+        # Let the stacked widget handle its own painting
+        super().paintEvent(event)
 
     def _draw_fps_counter_bottom_center(self, painter):
         """Draw FPS counter at the horizontal center of the window at the very bottom."""
@@ -779,3 +668,96 @@ class SplitScreenView(QWidget):
             "goal_gravity_50": "Goal Gravity +50%",
         }
         return labels.get(powerup, powerup)
+
+    def _paint_game_view(self, widget, event):
+        """Paint the game view content."""
+        painter = QPainter(widget)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+        # Update FPS counter
+        self._update_fps()
+
+        # Calculate dynamic view dimensions
+        window_width = widget.width()
+        window_height = widget.height()
+        divider_width = 20
+
+        # Use full height since FPS counter is disabled
+        view_height = window_height
+        view_width = (window_width - divider_width) // 2
+
+        # --- Game Over Check ---
+        if not self.game_over:
+            red_score = self.game_engine.get_red_player_score()
+            purple_score = self.game_engine.get_purple_player_score()
+            if red_score >= self.points_to_win:
+                self._start_game_over(1)
+            elif purple_score >= self.points_to_win:
+                self._start_game_over(2)
+
+        # --- Score Pulse Effect ---
+        score_pulse_state = self.game_engine.get_score_pulse_state()
+        score_pulse_color1 = None
+        score_pulse_color2 = None
+        if score_pulse_state["active"]:
+            # Calculate pulse intensity (fade in then fade out)
+            progress = score_pulse_state["timer"] / score_pulse_state["duration"]
+            if progress < 0.5:
+                # Fade in
+                intensity = int(progress * 2 * 120)  # Max 120 alpha
+            else:
+                # Fade out
+                intensity = int((1 - progress) * 2 * 120)
+
+            if score_pulse_state["player"] == 1:
+                # Red player scored - red pulse
+                score_pulse_color1 = QColor(255, 100, 100, intensity)
+                score_pulse_color2 = QColor(0, 0, 0, 0)  # No pulse on other view
+            else:
+                # Purple player scored - purple pulse
+                score_pulse_color1 = QColor(0, 0, 0, 0)  # No pulse on other view
+                score_pulse_color2 = QColor(200, 100, 255, intensity)
+
+        # --- Flashing Effect ---
+        flash_color1 = None
+        flash_color2 = None
+        if self.game_over:
+            self._flash_timer += 1
+            if self._flash_timer % 20 == 0:
+                self._flash_on = not self._flash_on
+            if self._flash_on:
+                if self.game_over_winner == 1:
+                    flash_color1 = QColor(0, 255, 0, 120)  # Green overlay
+                    flash_color2 = QColor(255, 0, 0, 120)  # Red overlay
+                else:
+                    flash_color1 = QColor(255, 0, 0, 120)
+                    flash_color2 = QColor(0, 255, 0, 120)
+
+        # Combine score pulse and flash effects
+        final_color1 = flash_color1 if flash_color1 else score_pulse_color1
+        final_color2 = flash_color2 if flash_color2 else score_pulse_color2
+
+        # Draw Player 2 view (left side - Purple)
+        self._draw_player_view(
+            painter, 2, 0, 0, view_width, view_height, overlay_color=final_color2
+        )
+
+        # Draw divider line
+        painter.setPen(QPen(QColor(100, 100, 100), 3))
+        divider_x = view_width + divider_width // 2
+        painter.drawLine(divider_x, 0, divider_x, view_height)
+
+        # Draw Player 1 view (right side - Red)
+        self._draw_player_view(
+            painter,
+            1,
+            view_width + divider_width,
+            0,
+            view_width,
+            view_height,
+            overlay_color=final_color1,
+        )
+
+        # Draw FPS counter at the bottom center of the window
+        if SHOW_FPS_COUNTER:
+            self._draw_fps_counter_bottom_center(painter)

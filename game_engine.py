@@ -147,6 +147,12 @@ class GameEngine:
         self.player1_powerups = []  # List of powerups earned by Player 1 (Red)
         self.player2_powerups = []  # List of powerups earned by Player 2 (Purple)
 
+        # Score pulse system for visual feedback
+        self.score_pulse_active = False
+        self.score_pulse_timer = 0
+        self.score_pulse_duration = 30  # frames
+        self.score_pulse_player = None  # 1 or 2
+
     def set_gamepad_manager(self, gamepad_manager):
         """Set the gamepad manager reference."""
         self._gamepad_manager = gamepad_manager
@@ -335,6 +341,8 @@ class GameEngine:
         # Gamepad state
         self.gamepad1_shoot_pressed = False
         self.gamepad2_shoot_pressed = False
+        # Reset score pulse system
+        self.reset_score_pulse()
         # Keep gamepad manager reference if set
         if hasattr(self, "_gamepad_manager"):
             self.set_gamepad_manager(self._gamepad_manager)
@@ -359,6 +367,8 @@ class GameEngine:
         # Gamepad state
         self.gamepad1_shoot_pressed = False
         self.gamepad2_shoot_pressed = False
+        # Reset score pulse system
+        self.reset_score_pulse()
         if hasattr(self, "_gamepad_manager"):
             self.set_gamepad_manager(self._gamepad_manager)
         self.apply_powerup_effects()
@@ -372,6 +382,7 @@ class GameEngine:
         self._handle_collisions()
         self._update_hit_points()
         self._update_scoring()
+        self.update_score_pulse()  # Update score pulse effects
 
     def _handle_input(self):
         """Process input for both players."""
@@ -745,12 +756,14 @@ class GameEngine:
         # Check for HP depletion
         if self.red_player_hp <= 0:
             self.purple_player_score += 1
+            self.trigger_score_pulse(2)  # Trigger purple player score pulse
             self._reset_player_hp()
             print(
                 f"Purple player scores from red HP depletion! Score: {self.purple_player_score}"
             )
         elif self.purple_player_hp <= 0:
             self.red_player_score += 1
+            self.trigger_score_pulse(1)  # Trigger red player score pulse
             self._reset_player_hp()
             print(
                 f"Red player scores from purple HP depletion! Score: {self.red_player_score}"
@@ -825,6 +838,7 @@ class GameEngine:
         # Check for scoring conditions (award 2 points for static circle scoring)
         if self.red_circle_overlap_timer >= SCORE_OVERLAP_FRAMES:
             self.red_player_score += STATIC_CIRCLE_SCORE_POINTS
+            self.trigger_score_pulse(1)  # Trigger score pulse for red player
             self._respawn_blue_square()
             self.red_circle_overlap_timer = 0
             print(
@@ -833,6 +847,7 @@ class GameEngine:
 
         if self.purple_circle_overlap_timer >= SCORE_OVERLAP_FRAMES:
             self.purple_player_score += STATIC_CIRCLE_SCORE_POINTS
+            self.trigger_score_pulse(2)  # Trigger score pulse for purple player
             self._respawn_blue_square()
             self.purple_circle_overlap_timer = 0
             print(
@@ -846,6 +861,36 @@ class GameEngine:
         self.blue_square.velocity_x = 0.0
         self.blue_square.velocity_y = 0.0
         self.blue_square.angular_velocity = 0.0
+
+    def trigger_score_pulse(self, player_number):
+        """Trigger a score pulse effect for visual feedback."""
+        self.score_pulse_active = True
+        self.score_pulse_timer = 0
+        self.score_pulse_player = player_number
+
+    def update_score_pulse(self):
+        """Update the score pulse timer."""
+        if self.score_pulse_active:
+            self.score_pulse_timer += 1
+            if self.score_pulse_timer >= self.score_pulse_duration:
+                self.score_pulse_active = False
+                self.score_pulse_timer = 0
+                self.score_pulse_player = None
+
+    def get_score_pulse_state(self):
+        """Get the current score pulse state for rendering."""
+        return {
+            "active": self.score_pulse_active,
+            "timer": self.score_pulse_timer,
+            "duration": self.score_pulse_duration,
+            "player": self.score_pulse_player,
+        }
+
+    def reset_score_pulse(self):
+        """Reset the score pulse system."""
+        self.score_pulse_active = False
+        self.score_pulse_timer = 0
+        self.score_pulse_player = None
 
     def get_red_player_score(self):
         """Get the red player's score."""
