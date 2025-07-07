@@ -1,5 +1,6 @@
 from PyQt6.QtGui import QColor
 from PyQt6.QtCore import Qt
+
 # --- STAR ICON ---
 SVG_STAR_ICON = """<svg viewBox=\"0 0 24 24\" width=\"96\" height=\"96\"><polygon points=\"0,12 12,10 24,12 12,14\" fill=\"#FFFFFF\" /><polygon points=\"12,0 10,12 12,24 14,12\" fill=\"#FFFFFF\" /><rect x=\"11\" y=\"11\" width=\"2\" height=\"2\" fill=\"#F0F0F0\" /><rect x=\"7\" y=\"7\" width=\"2\" height=\"2\" fill=\"#E0E0E0\" /><rect x=\"15\" y=\"7\" width=\"2\" height=\"2\" fill=\"#E0E0E0\" /><rect x=\"7\" y=\"15\" width=\"2\" height=\"2\" fill=\"#E0E0E0\" /><rect x=\"15\" y=\"15\" width=\"2\" height=\"2\" fill=\"#E0E0E0\" /></svg>"""
 """

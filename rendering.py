@@ -43,7 +43,8 @@ class Renderer:
         from objects import SVG_STAR_ICON
         from PyQt6.QtSvg import QSvgRenderer
         from PyQt6.QtCore import QByteArray, QRectF
-        star_renderer = QSvgRenderer(QByteArray(SVG_STAR_ICON.encode('utf-8')))
+
+        star_renderer = QSvgRenderer(QByteArray(SVG_STAR_ICON.encode("utf-8")))
 
         # No pen/brush needed for SVG
         # The world origin (0,0) should appear at screen coordinates that account for camera offset
