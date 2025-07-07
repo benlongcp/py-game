@@ -361,9 +361,9 @@ class SplitScreenView(QWidget):
                 painter, self.game_engine.red_dot, view_center_x, view_center_y
             )
         else:
-            # For player 2 view, draw purple dot at center in purple color
+            # For player 2 view, draw purple ship SVG at center (not dot)
             Renderer.draw_purple_dot_centered(
-                painter, following_dot, view_center_x, view_center_y
+                painter, self.game_engine.purple_dot, view_center_x, view_center_y
             )
 
         # Draw the other player's dot in world coordinates if it exists

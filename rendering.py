@@ -214,18 +214,14 @@ class Renderer:
         # Apply rotation
         painter.rotate(math.degrees(square.angle))  # Convert radians to degrees for Qt
 
-        # Draw the square centered at origin (since we translated)
-        half_size = square.size / 2
-        rect = QRectF(-half_size, -half_size, square.size, square.size)
-        painter.drawRect(rect)
-
-        # Restore the transformation state
+        # Draw the SVG cube centered at origin (since we translated)
+        square.draw_svg(painter, 0, 0)
         painter.restore()
 
     @staticmethod
     def draw_red_dot(painter, dot, view_center_x, view_center_y):
         """
-        Draw the red dot with momentum indicator.
+        Draw the red dot (now as SVG ship) with momentum indicator.
 
         Args:
             painter: QPainter instance
@@ -235,28 +231,22 @@ class Renderer:
         # Get screen position (always at center)
         screen_x, screen_y = view_center_x, view_center_y
 
-        # Choose color based on pulse state
+        # Draw SVG ship, pulsing overlays yellow if needed
         if dot.is_pulsing():
-            color = HP_DAMAGE_PULSE_COLOR  # Yellow when taking HP damage
-        else:
-            color = DOT_COLOR  # Normal red color
-
-        # Draw the dot
-        painter.setPen(QPen(QColor(*color), 2))
-        painter.setBrush(QBrush(QColor(*color)))
-        painter.drawEllipse(
-            int(screen_x - dot.radius),
-            int(screen_y - dot.radius),
-            dot.radius * 2,
-            dot.radius * 2,
-        )
-
-        # Draw momentum indicator if moving
-        momentum_info = dot.get_momentum_info()
-        if momentum_info:
-            Renderer._draw_momentum_indicator(
-                painter, screen_x, screen_y, momentum_info
+            # Draw yellow pulse ellipse behind SVG for damage effect
+            painter.save()
+            painter.setPen(QPen(QColor(*HP_DAMAGE_PULSE_COLOR), 0))
+            painter.setBrush(QBrush(QColor(*HP_DAMAGE_PULSE_COLOR)))
+            painter.drawEllipse(
+                int(screen_x - dot.radius),
+                int(screen_y - dot.radius),
+                dot.radius * 2,
+                dot.radius * 2,
             )
+            painter.restore()
+        dot.draw_svg(painter, screen_x, screen_y)
+
+        # Hide the momentum triangle for now
 
     @staticmethod
     def _draw_momentum_indicator(painter, center_x, center_y, momentum_info):
@@ -334,13 +324,8 @@ class Renderer:
                 camera_x, camera_y, view_width, view_height
             )
 
-            # Draw the projectile as a small circle
-            painter.drawEllipse(
-                int(screen_x - projectile.radius),
-                int(screen_y - projectile.radius),
-                int(projectile.radius * 2),
-                int(projectile.radius * 2),
-            )
+            # Draw the projectile as an SVG icon
+            projectile.draw_svg(painter, screen_x, screen_y)
 
     @staticmethod
     def draw_purple_dot(painter, dot, camera_x, camera_y, view_center_x, view_center_y):
@@ -365,28 +350,22 @@ class Renderer:
             and screen_y - dot.radius <= (view_center_y * 2)
         ):
 
-            # Choose color based on pulse state
+            # Draw SVG ship, pulsing overlays yellow if needed (match red ship logic)
             if dot.is_pulsing():
-                purple_color = HP_DAMAGE_PULSE_COLOR  # Yellow when taking HP damage
-            else:
-                purple_color = (128, 0, 128)  # Normal purple color
-
-            # Draw the dot
-            painter.setPen(QPen(QColor(*purple_color), 2))
-            painter.setBrush(QBrush(QColor(*purple_color)))
-            painter.drawEllipse(
-                int(screen_x - dot.radius),
-                int(screen_y - dot.radius),
-                dot.radius * 2,
-                dot.radius * 2,
-            )
-
-            # Draw momentum indicator if moving
-            momentum_info = dot.get_momentum_info()
-            if momentum_info:
-                Renderer._draw_purple_momentum_indicator(
-                    painter, screen_x, screen_y, momentum_info
+                # Draw yellow pulse ellipse behind SVG for damage effect
+                painter.save()
+                painter.setPen(QPen(QColor(*HP_DAMAGE_PULSE_COLOR), 0))
+                painter.setBrush(QBrush(QColor(*HP_DAMAGE_PULSE_COLOR)))
+                painter.drawEllipse(
+                    int(screen_x - dot.radius),
+                    int(screen_y - dot.radius),
+                    dot.radius * 2,
+                    dot.radius * 2,
                 )
+                painter.restore()
+            dot.draw_svg(painter, screen_x, screen_y)
+            # Hide the momentum triangle for now
+            # Hide the momentum triangle for now
 
     @staticmethod
     def _draw_purple_momentum_indicator(painter, center_x, center_y, momentum_info):
@@ -438,8 +417,7 @@ class Renderer:
     @staticmethod
     def draw_purple_dot_centered(painter, dot, view_center_x, view_center_y):
         """
-        Draw the purple dot at screen center with momentum indicator.
-
+        Draw the purple ship at screen center with SVG, matching red ship logic.
         Args:
             painter: QPainter instance
             dot: PurpleDot instance
@@ -448,35 +426,29 @@ class Renderer:
         # Get screen position (always at center)
         screen_x, screen_y = view_center_x, view_center_y
 
-        # Choose color based on pulse state
+        # Draw SVG ship, pulsing overlays yellow if needed (match red ship logic)
         if dot.is_pulsing():
-            purple_color = HP_DAMAGE_PULSE_COLOR  # Yellow when taking HP damage
-        else:
-            purple_color = (128, 0, 128)  # Normal purple color
-
-        # Draw the dot
-        painter.setPen(QPen(QColor(*purple_color), 2))
-        painter.setBrush(QBrush(QColor(*purple_color)))
-        painter.drawEllipse(
-            int(screen_x - dot.radius),
-            int(screen_y - dot.radius),
-            dot.radius * 2,
-            dot.radius * 2,
-        )
-
-        # Draw momentum indicator if moving
-        momentum_info = dot.get_momentum_info()
-        if momentum_info:
-            Renderer._draw_purple_momentum_indicator(
-                painter, screen_x, screen_y, momentum_info
+            # Draw yellow pulse ellipse behind SVG for damage effect
+            painter.save()
+            painter.setPen(QPen(QColor(*HP_DAMAGE_PULSE_COLOR), 0))
+            painter.setBrush(QBrush(QColor(*HP_DAMAGE_PULSE_COLOR)))
+            painter.drawEllipse(
+                int(screen_x - dot.radius),
+                int(screen_y - dot.radius),
+                dot.radius * 2,
+                dot.radius * 2,
             )
+            painter.restore()
+        # Draw SVG ship, 50% larger (scaling handled in PurpleDot.draw_svg)
+        dot.draw_svg(painter, screen_x, screen_y)
+        # Hide the momentum triangle for now
 
     @staticmethod
     def draw_red_dot_world(
         painter, dot, camera_x, camera_y, view_center_x, view_center_y
     ):
         """
-        Draw the red dot in world coordinates with momentum indicator.
+        Draw the red ship in world coordinates with SVG, matching split-screen center logic.
 
         Args:
             painter: QPainter instance
@@ -495,29 +467,20 @@ class Renderer:
             and screen_y + dot.radius >= 0
             and screen_y - dot.radius <= (view_center_y * 2)
         ):
-
-            # Choose color based on pulse state
+            # Draw SVG ship, pulsing overlays yellow if needed (match split-screen center logic)
             if dot.is_pulsing():
-                color = HP_DAMAGE_PULSE_COLOR  # Yellow when taking HP damage
-            else:
-                color = DOT_COLOR  # Normal red color
-
-            # Draw the dot
-            painter.setPen(QPen(QColor(*color), 2))
-            painter.setBrush(QBrush(QColor(*color)))
-            painter.drawEllipse(
-                int(screen_x - dot.radius),
-                int(screen_y - dot.radius),
-                dot.radius * 2,
-                dot.radius * 2,
-            )
-
-            # Draw momentum indicator if moving
-            momentum_info = dot.get_momentum_info()
-            if momentum_info:
-                Renderer._draw_momentum_indicator(
-                    painter, screen_x, screen_y, momentum_info
+                painter.save()
+                painter.setPen(QPen(QColor(*HP_DAMAGE_PULSE_COLOR), 0))
+                painter.setBrush(QBrush(QColor(*HP_DAMAGE_PULSE_COLOR)))
+                painter.drawEllipse(
+                    int(screen_x - dot.radius),
+                    int(screen_y - dot.radius),
+                    dot.radius * 2,
+                    dot.radius * 2,
                 )
+                painter.restore()
+            dot.draw_svg(painter, screen_x, screen_y)
+            # Hide the momentum triangle for now
 
     @staticmethod
     def draw_off_screen_indicator(
@@ -726,50 +689,29 @@ class Renderer:
             camera_x, camera_y, view_width, view_height
         )
 
-        # Set up pen and brush with pulse effect
+        # Draw SVG goal, with white pulse overlay if pulsing
         if is_pulsing and pulse_state:
             # Calculate pulse intensity based on timer
             progress = pulse_state["timer"] / pulse_state["duration"]
-            # Use a sine wave for smooth pulsing effect
             import math
-
-            pulse_intensity = abs(
-                math.sin(progress * math.pi * 4)
-            )  # 4 pulses over the duration
-
-            # White pulse overlay
-            white_alpha = int(pulse_intensity * 150)  # 0-150 alpha for white overlay
-
-            # Draw the normal circle first
-            painter.setPen(QPen(QColor(*circle.outline_color), 3))
-            painter.setBrush(QBrush(QColor(*circle.color)))
-            painter.drawEllipse(
-                int(screen_x - circle.radius),
-                int(screen_y - circle.radius),
-                int(circle.radius * 2),
-                int(circle.radius * 2),
-            )
-
+            pulse_intensity = abs(math.sin(progress * math.pi * 4))
+            white_alpha = int(pulse_intensity * 150)
+            # Draw SVG goal
+            circle.draw_svg(painter, screen_x, screen_y)
             # Draw white pulse overlay
-            pulse_color = QColor(255, 255, 255, white_alpha)
-            painter.setPen(QPen(pulse_color, 3))
-            painter.setBrush(QBrush(pulse_color))
+            painter.save()
+            painter.setPen(QPen(QColor(255, 255, 255, white_alpha), 3))
+            painter.setBrush(QBrush(QColor(255, 255, 255, white_alpha)))
             painter.drawEllipse(
                 int(screen_x - circle.radius),
                 int(screen_y - circle.radius),
                 int(circle.radius * 2),
                 int(circle.radius * 2),
             )
+            painter.restore()
         else:
             # Normal drawing without pulse
-            painter.setPen(QPen(QColor(*circle.outline_color), 3))
-            painter.setBrush(QBrush(QColor(*circle.color)))
-            painter.drawEllipse(
-                int(screen_x - circle.radius),
-                int(screen_y - circle.radius),
-                int(circle.radius * 2),
-                int(circle.radius * 2),
-            )
+            circle.draw_svg(painter, screen_x, screen_y)
 
     @staticmethod
     def draw_gravitational_dots(painter, camera_x, camera_y, view_width, view_height):
