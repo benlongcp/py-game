@@ -206,11 +206,15 @@ class SplitScreenView(QWidget):
 
     def _setup_window(self):
         """Initialize window properties."""
-        # Enable dynamic resizing with minimum size constraints
-        min_width = (WINDOW_WIDTH * 2) + 20  # +20 for divider
-        min_height = WINDOW_HEIGHT
+        # Enable dynamic resizing with smaller minimum size constraints
+        min_width = 800  # Reduced from (WINDOW_WIDTH * 2) + 20
+        min_height = 400  # Reduced from WINDOW_HEIGHT
         self.setMinimumSize(min_width, min_height)
-        self.resize(min_width, min_height)  # Initial size, but resizable
+
+        # Set initial size but allow resizing
+        initial_width = (WINDOW_WIDTH * 2) + 20  # +20 for divider
+        initial_height = WINDOW_HEIGHT
+        self.resize(initial_width, initial_height)
 
         self.setWindowTitle("Multi-Player Topographical Plane - Split Screen")
         self.setStyleSheet("background-color: black;")

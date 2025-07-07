@@ -130,8 +130,25 @@ class StatusDisplay:
         # Player name
         painter.drawText(x + 70, y + 20, player_name)
 
-        # HP
-        painter.drawText(x + 70, y + 35, f"HP: {hp}")
+        # HP with color coding based on value
+        hp_text = f"HP: {hp}"
+        if hp <= 1:
+            # Flash red when HP is 1 or below - use frame count for flashing
+            import time
+
+            flash_on = (int(time.time() * 8) % 2) == 0  # Flash 4 times per second
+            if flash_on:
+                painter.setPen(QPen(QColor(255, 0, 0)))  # Red
+            else:
+                painter.setPen(QPen(QColor(128, 0, 0)))  # Dark red
+        elif hp <= 5:
+            painter.setPen(QPen(QColor(255, 255, 0)))  # Yellow
+        else:
+            painter.setPen(QPen(QColor(255, 255, 255)))  # White
+        painter.drawText(x + 70, y + 35, hp_text)
+
+        # Reset to white for other text
+        painter.setPen(QPen(QColor(255, 255, 255)))
 
         # Score (show as fraction if points_to_win is provided)
         if points_to_win is not None:

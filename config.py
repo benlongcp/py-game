@@ -156,7 +156,7 @@ BLUE_SQUARE_RESPAWN_Y = 0.0  # Center of grid
 STATIC_CIRCLE_SCORE_POINTS = 2  # Points awarded for static circle scoring
 
 # Hit Points system
-INITIAL_HIT_POINTS = 10  # Starting hit points for each player
+INITIAL_HIT_POINTS = 20  # Starting hit points for each player
 HIT_POINT_DAMAGE = 1  # Damage per collision/contact
 
 # Score display
