@@ -48,6 +48,9 @@ class SplitScreenView(QWidget):
         self.game_over_winner = None  # 1 or 2
         self._flash_timer = 0
         self._flash_on = False
+        self._powerup_delay_timer = 0  # Timer for delaying powerup view
+        self._powerup_delay_duration = 90  # 1.5 seconds at 60 FPS
+        self._powerup_view_shown = False  # Track if powerup view has been shown
         if not hasattr(self, "points_to_win"):
             self.points_to_win = 3
 
@@ -56,7 +59,9 @@ class SplitScreenView(QWidget):
         self.game_over_winner = winner
         self._flash_timer = 0
         self._flash_on = False
-        self._show_powerup_selection_view()
+        self._powerup_delay_timer = 0  # Start the delay timer
+        self._powerup_view_shown = False  # Reset the flag
+        # Don't show powerup view immediately - wait for delay
 
     def _show_powerup_selection_view(self):
         """Show the powerup selection view instead of a dialog."""
@@ -734,6 +739,13 @@ class SplitScreenView(QWidget):
                 else:
                     flash_color1 = QColor(255, 0, 0, 120)
                     flash_color2 = QColor(0, 255, 0, 120)
+
+            # --- Powerup View Delay Logic ---
+            if not self._powerup_view_shown:
+                self._powerup_delay_timer += 1
+                if self._powerup_delay_timer >= self._powerup_delay_duration:
+                    self._show_powerup_selection_view()
+                    self._powerup_view_shown = True
 
         # Combine score pulse and flash effects
         final_color1 = flash_color1 if flash_color1 else score_pulse_color1
