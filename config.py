@@ -19,7 +19,9 @@ FPS_COUNTER_BACKGROUND = (0, 0, 0, 150)  # Semi-transparent black background
 # Grid settings
 GRID_SPACING = 30
 GRID_DOT_RADIUS = 1
-GRID_RADIUS = 1000  # 2000px diameter = 1000px radius
+GRID_RADIUS_X = 1000  # Horizontal radius (major axis)
+GRID_RADIUS_Y = 500  # Vertical radius (minor axis, for 2:1 ellipse)
+GRID_RADIUS = GRID_RADIUS_X  # Keep for backward compatibility
 GRID_COLOR = (200, 200, 200)  # Light grey
 
 # Red dot settings
@@ -106,7 +108,9 @@ STATIC_CIRCLE_DIAMETER = SQUARE_DIAGONAL * 2.66  # Doubled from 1.33 to 2.66
 STATIC_CIRCLE_RADIUS = STATIC_CIRCLE_DIAMETER / 2
 
 # Static circle positions (on equator line, opposite ends)
-STATIC_CIRCLE_DISTANCE = GRID_RADIUS * 0.8  # 80% of grid radius to stay within bounds
+STATIC_CIRCLE_DISTANCE = (
+    GRID_RADIUS_X * 0.8
+)  # 80% of horizontal radius to stay within bounds
 STATIC_RED_CIRCLE_X = -STATIC_CIRCLE_DISTANCE
 STATIC_RED_CIRCLE_Y = 0.0
 STATIC_PURPLE_CIRCLE_X = STATIC_CIRCLE_DISTANCE

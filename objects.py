@@ -103,10 +103,12 @@ class RedDot:
         new_x = self.virtual_x + self.velocity_x
         new_y = self.virtual_y + self.velocity_y
 
-        # Check circular boundary
+        # Check elliptical boundary
+        from config import GRID_RADIUS_X, GRID_RADIUS_Y
+
         is_outside, corrected_x, corrected_y, normal_x, normal_y = (
-            PhysicsEngine.check_circular_boundary(
-                new_x, new_y, self.radius, GRID_RADIUS
+            PhysicsEngine.check_elliptical_boundary(
+                new_x, new_y, self.radius, GRID_RADIUS_X, GRID_RADIUS_Y
             )
         )
 
@@ -241,35 +243,48 @@ class BlueSquare:
         new_x = self.x + self.velocity_x
         new_y = self.y + self.velocity_y
 
-        # Check if the square would go outside the circular boundary
-        # For a square, we need to check if any corner would be outside
+        # Check if the square would go outside the elliptical boundary
+        # For a square, we need to check if it fits within the ellipse considering its size
+        from config import GRID_RADIUS_X, GRID_RADIUS_Y
+
         half_size = self.size / 2
 
-        # Calculate the distance from center to the farthest corner of the square
-        # This is the diagonal distance from center to corner
-        corner_distance = math.sqrt((half_size) ** 2 + (half_size) ** 2)
+        # Check corners against the ellipse
+        corners = [
+            (new_x - half_size, new_y - half_size),
+            (new_x + half_size, new_y - half_size),
+            (new_x - half_size, new_y + half_size),
+            (new_x + half_size, new_y + half_size),
+        ]
 
-        # Check if the square center + corner distance exceeds the boundary
-        distance_from_center = math.sqrt(new_x**2 + new_y**2)
-        max_distance = GRID_RADIUS - corner_distance
+        outside = False
+        for cx, cy in corners:
+            ellipse_val = (cx / GRID_RADIUS_X) ** 2 + (cy / GRID_RADIUS_Y) ** 2
+            if ellipse_val > 1.0:
+                outside = True
+                break
 
-        if distance_from_center > max_distance:
-            # Square would go outside boundary - correct position
-            angle = math.atan2(new_y, new_x)
-            corrected_x = math.cos(angle) * max_distance
-            corrected_y = math.sin(angle) * max_distance
+        if outside:
+            # Use physics engine to find safe position for the square's center
+            # We treat the square as a circle with radius = half_size for boundary purposes
+            is_outside, corrected_x, corrected_y, normal_x, normal_y = (
+                PhysicsEngine.check_elliptical_boundary(
+                    new_x, new_y, half_size, GRID_RADIUS_X, GRID_RADIUS_Y
+                )
+            )
 
-            self.x = corrected_x
-            self.y = corrected_y
+            if is_outside:
+                self.x = corrected_x
+                self.y = corrected_y
 
-            # Calculate normal vector (pointing inward)
-            normal_x = -math.cos(angle)
-            normal_y = -math.sin(angle)
-
-            # Apply bounce with energy loss
-            dot_product = self.velocity_x * normal_x + self.velocity_y * normal_y
-            self.velocity_x -= 2 * dot_product * normal_x * BOUNCE_FACTOR
-            self.velocity_y -= 2 * dot_product * normal_y * BOUNCE_FACTOR
+                # Apply bounce with energy loss
+                dot_product = self.velocity_x * normal_x + self.velocity_y * normal_y
+                self.velocity_x -= 2 * dot_product * normal_x * BOUNCE_FACTOR
+                self.velocity_y -= 2 * dot_product * normal_y * BOUNCE_FACTOR
+            else:
+                # This shouldn't happen, but fallback to center
+                self.x = new_x
+                self.y = new_y
         else:
             # Square stays within boundary
             self.x = new_x
@@ -455,27 +470,36 @@ class Projectile:
             return
 
         # Update position
-        self.x += self.velocity_x
-        self.y += self.velocity_y
+        new_x = self.x + self.velocity_x
+        new_y = self.y + self.velocity_y
 
-        # Check for collision with circular boundary (bounce)
-        distance_from_center = math.sqrt(self.x**2 + self.y**2)
-        boundary_radius = GRID_RADIUS - self.radius
-        if distance_from_center > boundary_radius:
-            # Calculate normal at the point of contact (from center to projectile)
-            nx = self.x / distance_from_center
-            ny = self.y / distance_from_center
-            # Reflect velocity vector
-            dot = self.velocity_x * nx + self.velocity_y * ny
-            self.velocity_x -= 2 * dot * nx
-            self.velocity_y -= 2 * dot * ny
-            # Move projectile just inside the boundary
-            self.x = nx * boundary_radius
-            self.y = ny * boundary_radius
+        # Check for collision with elliptical boundary using physics engine
+        from config import GRID_RADIUS_X, GRID_RADIUS_Y
+
+        is_outside, corrected_x, corrected_y, normal_x, normal_y = (
+            PhysicsEngine.check_elliptical_boundary(
+                new_x, new_y, self.radius, GRID_RADIUS_X, GRID_RADIUS_Y
+            )
+        )
+
+        if is_outside:
+            # Position at corrected location
+            self.x = corrected_x
+            self.y = corrected_y
+
+            # Reflect velocity vector using the normal
+            dot_product = self.velocity_x * normal_x + self.velocity_y * normal_y
+            self.velocity_x -= 2 * dot_product * normal_x
+            self.velocity_y -= 2 * dot_product * normal_y
+
             self.bounce_count += 1
             self.has_made_contact = True  # Bouncing counts as contact
             if self.bounce_count >= 6:
                 self.is_active = False
+        else:
+            # Move to new position
+            self.x = new_x
+            self.y = new_y
 
     def get_screen_position(
         self, camera_x, camera_y, view_width=WINDOW_WIDTH, view_height=WINDOW_HEIGHT

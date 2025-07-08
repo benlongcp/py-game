@@ -73,6 +73,140 @@ class PhysicsEngine:
         return False, x, y, 0, 0
 
     @staticmethod
+    def check_elliptical_boundary(x, y, radius, radius_x, radius_y):
+        """
+        Check if a circular object is within an elliptical boundary.
+
+        Args:
+            x, y: Object center position
+            radius: Object radius
+            radius_x: Ellipse horizontal radius
+            radius_y: Ellipse vertical radius
+
+        Returns:
+            tuple: (is_outside, corrected_x, corrected_y, normal_x, normal_y)
+        """
+        # Check if object would be outside the boundary considering its radius
+        # We need to check against a smaller ellipse (reduced by the object's radius)
+
+        # For an ellipse, we approximate the reduced boundary by scaling both radii
+        # This is an approximation but works well for most cases
+        effective_radius_x = max(0, radius_x - radius)
+        effective_radius_y = max(0, radius_y - radius)
+
+        if effective_radius_x <= 0 or effective_radius_y <= 0:
+            # Object is too big for the boundary
+            return True, 0, 0, 0, 0
+
+        ellipse_val = (x / effective_radius_x) ** 2 + (y / effective_radius_y) ** 2
+
+        if ellipse_val > 1.0:
+            # Object is outside the effective boundary
+            # Instead of projecting by angle, find the point on the ellipse closest to current position
+            # This prevents the "teleportation" effect
+
+            # Use iterative method to find closest point on ellipse
+            closest_x, closest_y = PhysicsEngine._find_closest_ellipse_point(
+                x, y, effective_radius_x, effective_radius_y
+            )
+
+            # Calculate normal vector at the closest point (pointing inward)
+            # For ellipse: gradient is (2x/a², 2y/b²)
+            normal_x = 2 * closest_x / (effective_radius_x**2)
+            normal_y = 2 * closest_y / (effective_radius_y**2)
+            norm = math.sqrt(normal_x**2 + normal_y**2)
+            if norm > 0:
+                normal_x /= norm
+                normal_y /= norm
+                # Make it point inward
+                normal_x = -normal_x
+                normal_y = -normal_y
+            else:
+                normal_x, normal_y = 0, 0
+
+            return True, closest_x, closest_y, normal_x, normal_y
+
+        return False, x, y, 0, 0
+
+    @staticmethod
+    def _find_closest_ellipse_point(px, py, a, b):
+        """
+        Find the closest point on an ellipse to a given point.
+        Uses an iterative approach for accuracy.
+
+        Args:
+            px, py: Point coordinates
+            a, b: Ellipse semi-axes (horizontal and vertical radii)
+
+        Returns:
+            tuple: (closest_x, closest_y) on the ellipse boundary
+        """
+        # Handle edge cases
+        if a <= 0 or b <= 0:
+            return 0, 0
+
+        # If point is at origin, return any point on ellipse
+        if abs(px) < 1e-10 and abs(py) < 1e-10:
+            return a, 0
+
+        # For points on the axes, calculation is simple
+        if abs(py) < 1e-10:  # Point on x-axis
+            return a if px > 0 else -a, 0
+        if abs(px) < 1e-10:  # Point on y-axis
+            return 0, b if py > 0 else -b
+
+        # Use parametric form of ellipse and minimize distance
+        # Ellipse: x = a*cos(t), y = b*sin(t)
+        # We'll use a simple iterative approach
+
+        # Start with the angle to the point (good initial guess)
+        best_t = math.atan2(py / b, px / a)
+        best_dist_sq = float("inf")
+        best_x, best_y = 0, 0
+
+        # Refine the parameter using a few iterations
+        for iteration in range(10):  # Usually converges quickly
+            # Current point on ellipse
+            x_ellipse = a * math.cos(best_t)
+            y_ellipse = b * math.sin(best_t)
+
+            # Distance squared to target point
+            dist_sq = (x_ellipse - px) ** 2 + (y_ellipse - py) ** 2
+
+            if dist_sq < best_dist_sq:
+                best_dist_sq = dist_sq
+                best_x, best_y = x_ellipse, y_ellipse
+
+            # Calculate derivative to find better t
+            # d/dt[(a*cos(t) - px)² + (b*sin(t) - py)²]
+            dx_dt = -a * math.sin(best_t)
+            dy_dt = b * math.cos(best_t)
+
+            dist_deriv = 2 * (x_ellipse - px) * dx_dt + 2 * (y_ellipse - py) * dy_dt
+
+            # Second derivative for Newton's method
+            d2x_dt2 = -a * math.cos(best_t)
+            d2y_dt2 = -b * math.sin(best_t)
+
+            dist_deriv2 = (
+                2 * dx_dt * dx_dt
+                + 2 * (x_ellipse - px) * d2x_dt2
+                + 2 * dy_dt * dy_dt
+                + 2 * (y_ellipse - py) * d2y_dt2
+            )
+
+            # Newton's method step
+            if abs(dist_deriv2) > 1e-10:
+                t_step = -dist_deriv / dist_deriv2
+                best_t += t_step * 0.5  # Damped step for stability
+
+            # Stop if we're converging
+            if abs(dist_deriv) < 1e-6:
+                break
+
+        return best_x, best_y
+
+    @staticmethod
     def apply_collision_response(
         obj1_vel_x,
         obj1_vel_y,

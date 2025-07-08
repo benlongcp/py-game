@@ -35,13 +35,15 @@ class Renderer:
     def _compute_grid_points(
         camera_x, camera_y, view_center_x, view_center_y, grid_spacing, vertical_offset
     ):
+        from config import GRID_RADIUS_X, GRID_RADIUS_Y
+
         grid_points = []
         world_origin_screen_x = view_center_x - camera_x
         world_origin_screen_y = view_center_y - camera_y
         grid_center_x = world_origin_screen_x
         grid_center_y = world_origin_screen_y
-        min_y = grid_center_y - GRID_RADIUS
-        max_y = grid_center_y + GRID_RADIUS
+        min_y = grid_center_y - GRID_RADIUS_Y
+        max_y = grid_center_y + GRID_RADIUS_Y
         start_row = int((min_y - grid_center_y) / vertical_offset) - 2
         end_row = int((max_y - grid_center_y) / vertical_offset) + 2
         for row in range(start_row, end_row + 1):
@@ -49,18 +51,19 @@ class Renderer:
             if y < -GRID_DOT_RADIUS or y > (view_center_y * 2) + GRID_DOT_RADIUS:
                 continue
             x_offset = 0 if row % 2 == 0 else grid_spacing / 2
-            min_x = grid_center_x - GRID_RADIUS
-            max_x = grid_center_x + GRID_RADIUS
+            min_x = grid_center_x - GRID_RADIUS_X
+            max_x = grid_center_x + GRID_RADIUS_X
             start_col = int((min_x - grid_center_x - x_offset) / grid_spacing) - 1
             end_col = int((max_x - grid_center_x - x_offset) / grid_spacing) + 1
             for col in range(start_col, end_col + 1):
                 x = grid_center_x + (col * grid_spacing) + x_offset
                 if x < -GRID_DOT_RADIUS or x > (view_center_x * 2) + GRID_DOT_RADIUS:
                     continue
-                grid_distance = math.sqrt(
-                    (x - grid_center_x) ** 2 + (y - grid_center_y) ** 2
-                )
-                if grid_distance <= GRID_RADIUS:
+                # Elliptical boundary check: ((x-h)/a)^2 + ((y-k)/b)^2 <= 1
+                ellipse_val = ((x - grid_center_x) / GRID_RADIUS_X) ** 2 + (
+                    (y - grid_center_y) / GRID_RADIUS_Y
+                ) ** 2
+                if ellipse_val <= 1.0:
                     grid_points.append(QPointF(x, y))
         return grid_points
 
@@ -130,7 +133,12 @@ class Renderer:
 
         grid_center_x = world_origin_screen_x
         grid_center_y = world_origin_screen_y  # Create radial gradient that matches the actual grid boundary
-        gradient = QRadialGradient(grid_center_x, grid_center_y, GRID_RADIUS)
+        from config import GRID_RADIUS_X, GRID_RADIUS_Y
+
+        # Use a QRadialGradient for vignette, but draw an ellipse for the boundary
+        gradient = QRadialGradient(
+            grid_center_x, grid_center_y, max(GRID_RADIUS_X, GRID_RADIUS_Y)
+        )
         gradient.setColorAt(0.0, QColor(*VIGNETTE_COLOR))  # Transparent at center
         gradient.setColorAt(
             0.85, QColor(*VIGNETTE_COLOR)
@@ -143,10 +151,10 @@ class Renderer:
         painter.setBrush(QBrush(gradient))
         painter.setPen(QPen(QColor(0, 0, 0, 0)))  # Transparent pen
         painter.drawEllipse(
-            int(grid_center_x - GRID_RADIUS),
-            int(grid_center_y - GRID_RADIUS),
-            GRID_RADIUS * 2,
-            GRID_RADIUS * 2,
+            int(grid_center_x - GRID_RADIUS_X),
+            int(grid_center_y - GRID_RADIUS_Y),
+            GRID_RADIUS_X * 2,
+            GRID_RADIUS_Y * 2,
         )
 
     @staticmethod

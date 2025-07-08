@@ -800,20 +800,22 @@ class GameEngine:
             #     f"Red player scores 1 point from purple HP depletion! Score: {self.red_player_score}")
 
     def _check_boundary_collisions(self):
-        """Check if players hit the circular boundary and apply damage."""
+        """Check if players hit the elliptical boundary and apply damage."""
+        from config import GRID_RADIUS_X, GRID_RADIUS_Y
+
         # Check red player boundary collision
-        red_distance_from_center = math.sqrt(
-            self.red_dot.virtual_x**2 + self.red_dot.virtual_y**2
-        )
-        if red_distance_from_center + self.red_dot.radius >= GRID_RADIUS:
+        red_ellipse_val = (self.red_dot.virtual_x / GRID_RADIUS_X) ** 2 + (
+            self.red_dot.virtual_y / GRID_RADIUS_Y
+        ) ** 2
+        if red_ellipse_val > 1.0:
             self._damage_player("red", "boundary")
 
         # Check purple player boundary collision
         if self.purple_dot is not None:
-            purple_distance_from_center = math.sqrt(
-                self.purple_dot.virtual_x**2 + self.purple_dot.virtual_y**2
-            )
-            if purple_distance_from_center + self.purple_dot.radius >= GRID_RADIUS:
+            purple_ellipse_val = (self.purple_dot.virtual_x / GRID_RADIUS_X) ** 2 + (
+                self.purple_dot.virtual_y / GRID_RADIUS_Y
+            ) ** 2
+            if purple_ellipse_val > 1.0:
                 self._damage_player("purple", "boundary")
 
     def _reset_player_hp(self):
