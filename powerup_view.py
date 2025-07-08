@@ -6,7 +6,7 @@ Displays powerup options in a full-screen view instead of a dialog.
 import random
 from PyQt6.QtWidgets import QWidget
 from PyQt6.QtGui import QPainter, QPen, QBrush, QColor, QFont, QFontMetrics
-from PyQt6.QtCore import Qt, QRect, pyqtSignal
+from PyQt6.QtCore import Qt, QRect, pyqtSignal, QTimer
 from config import *
 
 
@@ -29,6 +29,14 @@ class PowerupSelectionView(QWidget):
 
         # Set dark background
         self.setStyleSheet("background-color: #111;")
+
+        # --- Controller support ---
+        self._gamepad_timer = QTimer(self)
+        self._gamepad_timer.timeout.connect(self._poll_gamepad)
+        self._gamepad_last_x = 0.0
+        self._gamepad_nav_cooldown = 0  # Frames to wait before next nav
+        self._gamepad_nav_cooldown_max = 8  # ~8*16ms = 128ms between moves
+        self._gamepad_last_a = False
 
     def setup_round_end(self, winner, loser):
         """Setup the view for a new round end."""
@@ -57,6 +65,76 @@ class PowerupSelectionView(QWidget):
         self.show()
         self.setFocus()
         self.update()
+
+        # Start polling for gamepad input
+        self._gamepad_timer.start(16)
+        self._gamepad_nav_cooldown = 0
+        self._gamepad_last_x = 0.0
+        self._gamepad_last_a = False
+
+    def _poll_gamepad(self):
+        # Only poll if gamepad support is enabled
+        if not getattr(self, "_gamepad_timer", None):
+            return
+        from config import (
+            GAMEPAD_ENABLED,
+            GAMEPAD_1_INDEX,
+            GAMEPAD_1_SHOOT_BUTTON,
+            GAMEPAD_DEADZONE,
+        )
+
+        if not GAMEPAD_ENABLED:
+            return
+        # Try to get GamepadManager from parent SplitScreenView
+        parent = self.parent()
+        gamepad_manager = None
+        # Traverse up to find SplitScreenView if needed
+        for _ in range(3):
+            if parent is None:
+                break
+            if hasattr(parent, "gamepad_manager"):
+                gamepad_manager = parent.gamepad_manager
+                break
+            parent = getattr(parent, "parent", lambda: None)()
+        if not gamepad_manager:
+            return
+        if not gamepad_manager.is_gamepad_connected(GAMEPAD_1_INDEX):
+            return
+        state = gamepad_manager.get_gamepad_input(GAMEPAD_1_INDEX)
+        x = state.get("left_stick_x", 0.0)
+        a = bool(state.get("shoot_button", False))
+        # Navigation cooldown logic
+        if self._gamepad_nav_cooldown > 0:
+            self._gamepad_nav_cooldown -= 1
+        # Left/right navigation (only trigger on edge/cooldown)
+        if abs(x) > GAMEPAD_DEADZONE:
+            if self._gamepad_nav_cooldown == 0:
+                if x < 0:
+                    self.selected_index = (self.selected_index - 1) % len(
+                        self.powerup_options
+                    )
+                    self.update()
+                    self._gamepad_nav_cooldown = self._gamepad_nav_cooldown_max
+                elif x > 0:
+                    self.selected_index = (self.selected_index + 1) % len(
+                        self.powerup_options
+                    )
+                    self.update()
+                    self._gamepad_nav_cooldown = self._gamepad_nav_cooldown_max
+        else:
+            self._gamepad_nav_cooldown = 0
+        # A button for selection (only on press, not hold)
+        if a and not self._gamepad_last_a:
+            if 0 <= self.selected_index < len(self.powerup_options):
+                powerup_key = self.powerup_options[self.selected_index][0]
+                self.powerup_selected.emit(powerup_key, False)
+        self._gamepad_last_a = a
+
+    def hideEvent(self, event):
+        # Stop polling when hidden
+        if getattr(self, "_gamepad_timer", None):
+            self._gamepad_timer.stop()
+        super().hideEvent(event)
 
     def paintEvent(self, event):
         """Draw the powerup selection screen."""
