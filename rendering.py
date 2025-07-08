@@ -120,42 +120,61 @@ class Renderer:
         painter, camera_x, camera_y, view_center_x, view_center_y
     ):
         """
-        Draw the vignette gradient effect at the grid boundary.
+        Draw the vignette gradient effect at the grid boundary using a stretched radial gradient.
 
         Args:
             painter: QPainter instance
             camera_x, camera_y: Camera position in world coordinates
             view_center_x, view_center_y: Center coordinates of the current view
-        """  # Calculate grid center position on screen (same as triangular grid)
+        """
+        # Calculate grid center position on screen (same as triangular grid)
         # The world origin (0,0) should appear at screen coordinates that account for camera offset
         world_origin_screen_x = view_center_x - camera_x
         world_origin_screen_y = view_center_y - camera_y
 
         grid_center_x = world_origin_screen_x
-        grid_center_y = world_origin_screen_y  # Create radial gradient that matches the actual grid boundary
+        grid_center_y = world_origin_screen_y
+
         from config import GRID_RADIUS_X, GRID_RADIUS_Y
 
-        # Use a QRadialGradient for vignette, but draw an ellipse for the boundary
-        gradient = QRadialGradient(
-            grid_center_x, grid_center_y, max(GRID_RADIUS_X, GRID_RADIUS_Y)
-        )
-        gradient.setColorAt(0.0, QColor(*VIGNETTE_COLOR))  # Transparent at center
-        gradient.setColorAt(
-            0.85, QColor(*VIGNETTE_COLOR)
-        )  # Still transparent until near edge
-        gradient.setColorAt(
-            1.0, QColor(*VIGNETTE_EDGE_COLOR)
-        )  # Opaque at actual boundary
+        painter.save()
 
-        # Apply gradient and draw at the actual grid boundary radius
+        # Use horizontal scaling to stretch a radial gradient into an elliptical shape
+        # Scale horizontally by the ratio of X to Y radius to create elliptical effect
+        scale_x = GRID_RADIUS_X / GRID_RADIUS_Y  # This will be 2.0 for 2:1 aspect ratio
+
+        # Apply horizontal scaling transformation
+        painter.translate(grid_center_x, grid_center_y)
+        painter.scale(scale_x, 1.0)  # Stretch horizontally
+        painter.translate(
+            -grid_center_x / scale_x, -grid_center_y
+        )  # Adjust center position
+
+        # Create a radial gradient that will be stretched horizontally
+        gradient = QRadialGradient(
+            grid_center_x / scale_x, grid_center_y, GRID_RADIUS_Y
+        )
+
+        # Set up gradient colors: transparent center to white edges
+        gradient.setColorAt(0.0, QColor(255, 255, 255, 0))  # Transparent at center
+        gradient.setColorAt(0.70, QColor(255, 255, 255, 0))  # Still transparent
+        gradient.setColorAt(0.85, QColor(255, 255, 255, 80))  # Start to fade in
+        gradient.setColorAt(0.95, QColor(255, 255, 255, 160))  # Getting opaque
+        gradient.setColorAt(1.0, QColor(255, 255, 255, 220))  # White at edge
+
+        # Apply gradient and draw the ellipse
         painter.setBrush(QBrush(gradient))
         painter.setPen(QPen(QColor(0, 0, 0, 0)))  # Transparent pen
+
+        # Draw a circle that will become an ellipse due to the scaling
         painter.drawEllipse(
-            int(grid_center_x - GRID_RADIUS_X),
+            int(grid_center_x / scale_x - GRID_RADIUS_Y),
             int(grid_center_y - GRID_RADIUS_Y),
-            GRID_RADIUS_X * 2,
+            GRID_RADIUS_Y * 2,
             GRID_RADIUS_Y * 2,
         )
+
+        painter.restore()
 
     @staticmethod
     def draw_blue_square(painter, square, camera_x, camera_y, view_width, view_height):
