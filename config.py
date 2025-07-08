@@ -38,11 +38,13 @@ PURPLE_DOT_COLOR = (128, 0, 128)  # Purple
 HP_DAMAGE_PULSE_COLOR = (255, 255, 0)  # Yellow for HP damage pulse
 
 # Red dot physics
-ACCELERATION = 0.1  # How quickly velocity increases when keys are held
+ACCELERATION = (
+    0.1275  # How quickly velocity increases when keys are held (reduced 15% from 0.15)
+)
 DECELERATION = (
     0.99  # Friction factor (0.99 = 1% speed loss per frame, ~10 second stop time)
 )
-MAX_SPEED = 60.0  # Maximum velocity in any direction (increased 10x from 6.0 for high-speed gameplay)
+MAX_SPEED = 76.5  # Maximum velocity in any direction (reduced 15% from 90.0 for balanced gameplay)
 
 # Projectile settings
 PROJECTILE_RADIUS = 2  # Smaller than the red dot
