@@ -71,6 +71,17 @@ class TopographicalPlane(QWidget):
             painter, camera_x, camera_y, self.width(), self.height(), self.game_engine
         )
         Renderer.draw_gravitational_dots(painter, camera_x, camera_y)
+
+        # Draw the black hole
+        Renderer.draw_black_hole(
+            painter,
+            self.game_engine.black_hole,
+            camera_x,
+            camera_y,
+            self.width(),
+            self.height(),
+        )
+
         Renderer.draw_blue_square(
             painter, self.game_engine.blue_square, camera_x, camera_y
         )

@@ -954,3 +954,176 @@ class CentralGravitationalDot(GravitationalDot):
         self.strength = CENTRAL_GRAVITY_STRENGTH
         self.max_distance = CENTRAL_GRAVITY_MAX_DISTANCE
         self.radius = CENTRAL_GRAVITY_RADIUS
+
+
+class BlackHole:
+    """
+    Represents a mini black hole with powerful gravitational pull.
+    Moves slowly and randomly, affecting all objects within its gravitational field.
+    """
+
+    def __init__(self):
+        """Initialize a black hole at a random position with random movement."""
+        import random
+        from config import GRID_RADIUS_X, GRID_RADIUS_Y
+
+        # Random position within elliptical play area (not too close to edges)
+        angle = random.uniform(0, 2 * math.pi)
+        # Use 70% of max radius to avoid spawning too close to edges
+        max_distance = min(GRID_RADIUS_X, GRID_RADIUS_Y) * 0.7
+        distance = random.uniform(0, max_distance)
+
+        self.x = float(
+            math.cos(angle)
+            * distance
+            * (GRID_RADIUS_X / min(GRID_RADIUS_X, GRID_RADIUS_Y))
+        )
+        self.y = float(
+            math.sin(angle)
+            * distance
+            * (GRID_RADIUS_Y / min(GRID_RADIUS_X, GRID_RADIUS_Y))
+        )
+
+        # Size similar to blue square
+        self.radius = (
+            DOT_RADIUS * SQUARE_SIZE_MULTIPLIER * 0.75
+        )  # Slightly smaller than blue square
+
+        # Random slow movement
+        self.velocity_x = random.uniform(-1.5, 1.5)  # Slow movement
+        self.velocity_y = random.uniform(-1.5, 1.5)
+
+        # Gravitational properties - 10x stronger than goal circles
+        self.gravity_strength = GRAVITY_STRENGTH * 10.0  # 10x stronger
+        self.gravity_radius = self.radius * 3.0  # 3x radius for gravity field
+        self.max_gravity_distance = self.gravity_radius
+
+        # Visual properties for gradient
+        self.gradient_radius = self.radius * 2.0  # Gradient extends 2x the hole radius
+
+    def update_physics(self):
+        """Update black hole position with slow random movement."""
+        # Update position
+        new_x = self.x + self.velocity_x
+        new_y = self.y + self.velocity_y
+
+        # Check elliptical boundary collision (treat as circle for simplicity)
+        from config import GRID_RADIUS_X, GRID_RADIUS_Y
+
+        is_outside, corrected_x, corrected_y, normal_x, normal_y = (
+            PhysicsEngine.check_elliptical_boundary(
+                new_x, new_y, self.radius, GRID_RADIUS_X, GRID_RADIUS_Y
+            )
+        )
+
+        if is_outside:
+            # Bounce off boundary with some randomness
+            import random
+
+            self.x = corrected_x
+            self.y = corrected_y
+
+            # Reflect velocity with some randomness
+            dot_product = self.velocity_x * normal_x + self.velocity_y * normal_y
+            self.velocity_x -= 2 * dot_product * normal_x
+            self.velocity_y -= 2 * dot_product * normal_y
+
+            # Add some randomness to movement after bounce
+            self.velocity_x += random.uniform(-0.5, 0.5)
+            self.velocity_y += random.uniform(-0.5, 0.5)
+
+            # Clamp velocity to slow movement
+            max_speed = 2.0
+            speed = math.sqrt(self.velocity_x**2 + self.velocity_y**2)
+            if speed > max_speed:
+                scale = max_speed / speed
+                self.velocity_x *= scale
+                self.velocity_y *= scale
+        else:
+            # Normal movement
+            self.x = new_x
+            self.y = new_y
+
+        # Occasionally change direction slightly for more interesting movement
+        import random
+
+        if random.random() < 0.02:  # 2% chance per frame
+            self.velocity_x += random.uniform(-0.3, 0.3)
+            self.velocity_y += random.uniform(-0.3, 0.3)
+
+            # Keep speed reasonable
+            max_speed = 2.0
+            speed = math.sqrt(self.velocity_x**2 + self.velocity_y**2)
+            if speed > max_speed:
+                scale = max_speed / speed
+                self.velocity_x *= scale
+                self.velocity_y *= scale
+
+    def apply_gravity_to_object(self, obj):
+        """
+        Apply powerful gravitational force to an object if it's within range.
+
+        Args:
+            obj: Object with x, y or virtual_x, virtual_y and velocity_x, velocity_y attributes
+
+        Returns:
+            bool: True if gravity was applied, False otherwise
+        """
+        # Get object position (handle both x/y and virtual_x/virtual_y)
+        obj_x = getattr(obj, "x", getattr(obj, "virtual_x", None))
+        obj_y = getattr(obj, "y", getattr(obj, "virtual_y", None))
+
+        if obj_x is None or obj_y is None:
+            return False  # Object doesn't have position attributes
+
+        # Calculate distance from black hole to object
+        dx = self.x - obj_x
+        dy = self.y - obj_y
+        distance = math.sqrt(dx * dx + dy * dy)
+
+        # Only apply gravity if object is within the gravitational field
+        if (
+            distance > self.max_gravity_distance or distance < 0.1
+        ):  # Avoid division by zero
+            return False
+
+        # Calculate gravitational force (stronger than normal gravity)
+        # Use inverse distance squared for more realistic black hole physics
+        force_magnitude = self.gravity_strength / (distance**2)
+
+        # Normalize direction vector
+        force_x = (dx / distance) * force_magnitude
+        force_y = (dy / distance) * force_magnitude
+
+        # Apply force to object's velocity
+        obj.velocity_x += force_x
+        obj.velocity_y += force_y
+
+        return True
+
+    def get_screen_position(
+        self, camera_x, camera_y, view_width=WINDOW_WIDTH, view_height=WINDOW_HEIGHT
+    ):
+        """Get the screen position based on camera position and view dimensions."""
+        view_center_x = view_width / 2
+        view_center_y = view_height / 2
+        screen_x = self.x - (camera_x - view_center_x)
+        screen_y = self.y - (camera_y - view_center_y)
+        return screen_x, screen_y
+
+    def is_visible(
+        self, camera_x, camera_y, view_width=WINDOW_WIDTH, view_height=WINDOW_HEIGHT
+    ):
+        """Check if the black hole is visible on screen."""
+        screen_x, screen_y = self.get_screen_position(
+            camera_x, camera_y, view_width, view_height
+        )
+
+        # Include gradient radius for visibility check
+        gradient_margin = self.gradient_radius
+        return (
+            screen_x + gradient_margin >= 0
+            and screen_x - gradient_margin <= view_width
+            and screen_y + gradient_margin >= 0
+            and screen_y - gradient_margin <= view_height
+        )

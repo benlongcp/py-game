@@ -109,6 +109,11 @@ class GameEngine:
         self.purple_gravity_dot = PurpleGravitationalDot()
         self.central_gravity_dot = CentralGravitationalDot()
 
+        # Black hole for additional gravitational dynamics
+        from objects import BlackHole
+
+        self.black_hole = BlackHole()
+
         # Scoring system
         self.red_player_score = 0
         self.purple_player_score = 0
@@ -509,13 +514,23 @@ class GameEngine:
             self.purple_dot.update_physics()
         self.blue_square.update_physics()
 
+        # Update black hole physics
+        self.black_hole.update_physics()
+
         # Apply gravitational forces to the blue square
         self._apply_gravitational_forces()
 
-        # Update projectile physics
+        # Apply black hole gravity to players
+        self.black_hole.apply_gravity_to_object(self.red_dot)
+        if self.purple_dot is not None:
+            self.black_hole.apply_gravity_to_object(self.purple_dot)
+
+        # Update projectile physics and apply gravity to each projectile
         for projectile in self.projectiles[
             :
         ]:  # Use slice copy to safely modify during iteration
+            # Apply gravitational forces to projectiles
+            self._apply_gravitational_forces_to_projectile(projectile)
             projectile.update_physics()
             if not projectile.is_active:
                 self.projectiles.remove(projectile)
@@ -759,6 +774,27 @@ class GameEngine:
 
         # Apply gravity from central gravitational dot
         self.central_gravity_dot.apply_gravity_to_object(self.blue_square)
+
+        # Apply powerful gravity from black hole
+        self.black_hole.apply_gravity_to_object(self.blue_square)
+
+    def _apply_gravitational_forces_to_projectile(self, projectile):
+        """Apply gravitational forces from the gravitational dots to a projectile."""
+        # Set goal gravity strengths based on player powerups
+        self.red_gravity_dot.strength = self.get_player1_goal_gravity()
+        self.purple_gravity_dot.strength = self.get_player2_goal_gravity()
+
+        # Apply gravity from red gravitational dot
+        self.red_gravity_dot.apply_gravity_to_object(projectile)
+
+        # Apply gravity from purple gravitational dot
+        self.purple_gravity_dot.apply_gravity_to_object(projectile)
+
+        # Apply gravity from central gravitational dot
+        self.central_gravity_dot.apply_gravity_to_object(projectile)
+
+        # Apply powerful gravity from black hole
+        self.black_hole.apply_gravity_to_object(projectile)
 
     def _damage_player(self, player, damage_source):
         """Apply damage to a player if not on cooldown."""

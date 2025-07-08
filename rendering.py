@@ -950,3 +950,59 @@ class Renderer:
             painter.setPen(QPen(QColor(128, 0, 128), 2))  # Purple color
             painter.drawText(purple_score_x, score_y, purple_score_text)
             painter.drawText(purple_hp_x, hp_y, purple_hp_text)
+
+    @staticmethod
+    def draw_black_hole(
+        painter, black_hole, camera_x, camera_y, view_width, view_height
+    ):
+        """
+        Draw the black hole with a radial gradient from black center to transparent edge.
+
+        Args:
+            painter: QPainter instance
+            black_hole: BlackHole instance
+            camera_x, camera_y: Camera position in world coordinates
+            view_width, view_height: Dimensions of the view area
+        """
+        if not black_hole.is_visible(camera_x, camera_y, view_width, view_height):
+            return
+
+        screen_x, screen_y = black_hole.get_screen_position(
+            camera_x, camera_y, view_width, view_height
+        )
+
+        painter.save()
+        try:
+            # Create radial gradient from black center to transparent edge
+            gradient = QRadialGradient(screen_x, screen_y, black_hole.gradient_radius)
+
+            # Set up gradient colors: black center to transparent edge
+            gradient.setColorAt(0.0, QColor(0, 0, 0, 255))  # Solid black at center
+            gradient.setColorAt(0.3, QColor(0, 0, 0, 200))  # Still mostly black
+            gradient.setColorAt(0.6, QColor(0, 0, 0, 100))  # Fading
+            gradient.setColorAt(0.8, QColor(0, 0, 0, 50))  # Very faint
+            gradient.setColorAt(1.0, QColor(0, 0, 0, 0))  # Transparent at edge
+
+            # Apply gradient and draw the black hole
+            painter.setBrush(QBrush(gradient))
+            painter.setPen(QPen(QColor(0, 0, 0, 0)))  # Transparent pen
+
+            # Draw the gradient circle
+            painter.drawEllipse(
+                int(screen_x - black_hole.gradient_radius),
+                int(screen_y - black_hole.gradient_radius),
+                int(black_hole.gradient_radius * 2),
+                int(black_hole.gradient_radius * 2),
+            )
+
+            # Draw the solid black center
+            painter.setBrush(QBrush(QColor(0, 0, 0, 255)))
+            painter.drawEllipse(
+                int(screen_x - black_hole.radius),
+                int(screen_y - black_hole.radius),
+                int(black_hole.radius * 2),
+                int(black_hole.radius * 2),
+            )
+
+        finally:
+            painter.restore()
