@@ -79,10 +79,10 @@ class SplitScreenView(QWidget):
             # Apply the selected powerup
             loser_num = 2 if self.game_over_winner == 1 else 1
             if loser_num == 1:
-                print(f"[DEBUG] Assigning powerup to Player 1: {powerup_key}")
+                # print(f"[DEBUG] Assigning powerup to Player 1: {powerup_key}")
                 self.game_engine.player1_powerups.append(powerup_key)
             else:
-                print(f"[DEBUG] Assigning powerup to Player 2: {powerup_key}")
+                # print(f"[DEBUG] Assigning powerup to Player 2: {powerup_key}")
                 self.game_engine.player2_powerups.append(powerup_key)
 
             # Continue the game
@@ -325,7 +325,7 @@ class SplitScreenView(QWidget):
         params = self._grid_cache_params[cache_idx]
         needs_redraw = cache is None or params is None or params != cache_params
         if needs_redraw:
-            print(f"Redrawing grid for player {player_number} (cache_idx={cache_idx})")
+            # print(f"Redrawing grid for player {player_number} (cache_idx={cache_idx})")
             grid_pixmap = QPixmap(width, height)
             grid_pixmap.fill(QColor(0, 0, 0))  # Fill with black
             grid_painter = QPainter(grid_pixmap)

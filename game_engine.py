@@ -412,7 +412,7 @@ class GameEngine:
         if gamepad_controlling_player1:
             # Use gamepad input for Player 1
             gamepad1_input = self._gamepad_manager.get_gamepad_input(GAMEPAD_1_INDEX)
-            print(f"[DEBUG] Player 1 gamepad input: {gamepad1_input}")  # Debug print
+            # print(f"[DEBUG] Player 1 gamepad input: {gamepad1_input}")  # Debug print
             max_speed = self.get_player1_effective_top_speed()
             self.red_dot.acceleration_x = (
                 gamepad1_input["left_stick_x"] * ANALOG_STICK_MULTIPLIER
@@ -445,7 +445,10 @@ class GameEngine:
             if Qt.Key.Key_Down in self.player1_keys:
                 self.red_dot.acceleration_y = ACCELERATION
             # Keyboard firing (e.g., Enter key)
-            if Qt.Key.Key_Return in self.player1_keys or Qt.Key.Key_Enter in self.player1_keys:
+            if (
+                Qt.Key.Key_Return in self.player1_keys
+                or Qt.Key.Key_Enter in self.player1_keys
+            ):
                 self.shoot_projectile_player1()
 
         # Player 2 (Purple dot) - Check gamepad first, then keyboard fallback
@@ -462,7 +465,7 @@ class GameEngine:
                 gamepad2_input = self._gamepad_manager.get_gamepad_input(
                     GAMEPAD_2_INDEX
                 )
-                print(f"[DEBUG] Player 2 gamepad input: {gamepad2_input}")  # Debug print
+                # print(f"[DEBUG] Player 2 gamepad input: {gamepad2_input}")  # Debug print
                 max_speed2 = self.get_player2_effective_top_speed()
                 self.purple_dot.acceleration_x = (
                     gamepad2_input["left_stick_x"] * ANALOG_STICK_MULTIPLIER
@@ -763,13 +766,13 @@ class GameEngine:
             self.red_player_hp -= HIT_POINT_DAMAGE
             self.red_dot_collision_cooldown = self.collision_cooldown_frames
             self.red_dot.trigger_hp_damage_pulse()  # Trigger yellow pulse effect
-            print(f"Red player hit by {damage_source}! HP: {self.red_player_hp}")
+            # print(f"Red player hit by {damage_source}! HP: {self.red_player_hp}")
         elif player == "purple" and self.purple_dot_collision_cooldown <= 0:
             self.purple_player_hp -= HIT_POINT_DAMAGE
             self.purple_dot_collision_cooldown = self.collision_cooldown_frames
             if self.purple_dot is not None:
                 self.purple_dot.trigger_hp_damage_pulse()  # Trigger yellow pulse effect
-            print(f"Purple player hit by {damage_source}! HP: {self.purple_player_hp}")
+            # print(f"Purple player hit by {damage_source}! HP: {self.purple_player_hp}")
 
     def _update_hit_points(self):
         """Update hit point system and check for boundary collisions."""
@@ -787,16 +790,14 @@ class GameEngine:
             self.purple_player_score += 1  # HP depletion = 1 point
             self.trigger_score_pulse(2)  # Trigger purple player score pulse
             self._reset_player_hp()
-            print(
-                f"Purple player scores 1 point from red HP depletion! Score: {self.purple_player_score}"
-            )
+            # print(
+            #     f"Purple player scores 1 point from red HP depletion! Score: {self.purple_player_score}")
         elif self.purple_player_hp <= 0:
             self.red_player_score += 1  # HP depletion = 1 point
             self.trigger_score_pulse(1)  # Trigger red player score pulse
             self._reset_player_hp()
-            print(
-                f"Red player scores 1 point from purple HP depletion! Score: {self.red_player_score}"
-            )
+            # print(
+            #     f"Red player scores 1 point from purple HP depletion! Score: {self.red_player_score}")
 
     def _check_boundary_collisions(self):
         """Check if players hit the circular boundary and apply damage."""
@@ -871,9 +872,8 @@ class GameEngine:
             self._respawn_blue_square()
             self.projectiles.clear()  # Remove all projectiles after a goal
             self.red_circle_overlap_timer = 0
-            print(
-                f"Red player scores 2 points for a goal! Total: {self.red_player_score}"
-            )
+            # print(
+            #     f"Red player scores 2 points for a goal! Total: {self.red_player_score}")
 
         if self.purple_circle_overlap_timer >= SCORE_OVERLAP_FRAMES:
             self.purple_player_score += 2  # Goal = 2 points
@@ -881,9 +881,8 @@ class GameEngine:
             self._respawn_blue_square()
             self.projectiles.clear()  # Remove all projectiles after a goal
             self.purple_circle_overlap_timer = 0
-            print(
-                f"Purple player scores 2 points for a goal! Total: {self.purple_player_score}"
-            )
+            # print(
+            #     f"Purple player scores 2 points for a goal! Total: {self.purple_player_score}")
 
     def _respawn_blue_square(self):
         """Respawn the blue square at the center of the grid."""
