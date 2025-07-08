@@ -1,14 +1,161 @@
 """
-Main entry point for the Topographical - Move: Arrow keys
-- Shoot: Enterane application.
+Main entry point for the Topographical Plane application.
 Creates a shared game engine and split-screen multi-player setup.
 """
 
 import sys
-from PyQt6.QtWidgets import QApplication, QMessageBox
-from PyQt6.QtCore import QTimer
+import math
+from PyQt6.QtWidgets import QApplication, QWidget
+from PyQt6.QtCore import QTimer, Qt
+from PyQt6.QtGui import QPainter, QFont, QColor, QRadialGradient, QBrush, QPen
+from PyQt6.QtCore import QRectF
+from PyQt6.QtSvg import QSvgRenderer
+from PyQt6.QtCore import QByteArray
 from game_engine import GameEngine
 from split_screen import SplitScreenView
+from objects import SVG_RED_SHIP, SVG_BLUE_CUBE
+from gamepad_manager import GamepadManager
+from config import GAMEPAD_ENABLED
+
+
+class LaunchScreen(QWidget):
+    """Launch screen displaying HOLE BALL title with SVG elements."""
+
+    def __init__(self, controller):
+        super().__init__()
+        self.controller = controller
+        self.setWindowTitle("HOLE BALL")
+        self.setFixedSize(1200, 800)
+        self.setStyleSheet("background-color: black;")
+
+        # Set up SVG renderers
+        self.red_ship_renderer = QSvgRenderer(QByteArray(SVG_RED_SHIP.encode("utf-8")))
+        self.blue_cube_renderer = QSvgRenderer(
+            QByteArray(SVG_BLUE_CUBE.encode("utf-8"))
+        )
+
+        # Set up gamepad manager for input detection
+        self.gamepad_manager = GamepadManager() if GAMEPAD_ENABLED else None
+
+        # Enable focus and mouse tracking to capture all input
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        self.setMouseTracking(True)
+
+        # Input detection timer
+        self.input_timer = QTimer()
+        self.input_timer.timeout.connect(self.check_gamepad_input)
+        self.input_timer.start(16)  # Check gamepad input at 60fps
+
+    def paintEvent(self, event):
+        """Draw the launch screen with title and SVG elements."""
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+        width = self.width()
+        height = self.height()
+
+        # Create black radial gradient background
+        gradient = QRadialGradient(width // 2, height // 2, min(width, height) // 2)
+        gradient.setColorAt(0.0, QColor(40, 40, 40))  # Dark gray center
+        gradient.setColorAt(0.7, QColor(20, 20, 20))  # Darker
+        gradient.setColorAt(1.0, QColor(0, 0, 0))  # Pure black at edges
+
+        painter.fillRect(0, 0, width, height, QBrush(gradient))
+
+        # Draw "HOLE BALL" title in big yellow letters with glow effect
+        font = QFont("Arial", 72, QFont.Weight.Bold)
+        painter.setFont(font)
+
+        title_text = "HOLE BALL"
+        font_metrics = painter.fontMetrics()
+        text_width = font_metrics.horizontalAdvance(title_text)
+        text_height = font_metrics.height()
+
+        # Center the title horizontally, place in upper third
+        title_x = (width - text_width) // 2
+        title_y = height // 3
+
+        # Draw glow effect (multiple yellow outlines with decreasing opacity)
+        for i in range(3, 0, -1):
+            glow_alpha = 60 // i  # 20, 30, 60
+            painter.setPen(QPen(QColor(255, 255, 0, glow_alpha), i * 2))
+            painter.drawText(title_x, title_y, title_text)
+
+        # Draw main title text
+        painter.setPen(QPen(QColor(255, 255, 0), 2))
+        painter.drawText(title_x, title_y, title_text)
+
+        # Draw red ship SVG (left side)
+        ship_size = 120
+        ship_x = width // 4 - ship_size // 2
+        ship_y = height * 2 // 3 - ship_size // 2
+
+        painter.save()
+        painter.translate(ship_x + ship_size // 2, ship_y + ship_size // 2)
+        painter.rotate(-30)  # Slight rotation for visual appeal
+        ship_rect = QRectF(-ship_size // 2, -ship_size // 2, ship_size, ship_size)
+        self.red_ship_renderer.render(painter, ship_rect)
+        painter.restore()
+
+        # Draw blue cube SVG (right side)
+        cube_size = 100
+        cube_x = width * 3 // 4 - cube_size // 2
+        cube_y = height * 2 // 3 - cube_size // 2
+
+        painter.save()
+        painter.translate(cube_x + cube_size // 2, cube_y + cube_size // 2)
+        painter.rotate(15)  # Slight rotation for visual appeal
+        cube_rect = QRectF(-cube_size // 2, -cube_size // 2, cube_size, cube_size)
+        self.blue_cube_renderer.render(painter, cube_rect)
+        painter.restore()
+
+        # Draw "Press any key to start" text
+        start_font = QFont("Arial", 24)
+        painter.setFont(start_font)
+        painter.setPen(QPen(QColor(200, 200, 200), 1))  # Light gray
+
+        start_text = "Press any key to start"
+        start_metrics = painter.fontMetrics()
+        start_width = start_metrics.horizontalAdvance(start_text)
+        start_x = (width - start_width) // 2
+        start_y = height - 100
+
+        painter.drawText(start_x, start_y, start_text)
+
+    def keyPressEvent(self, event):
+        """Any key press starts the game."""
+        self.start_game()
+
+    def mousePressEvent(self, event):
+        """Any mouse click starts the game."""
+        self.start_game()
+
+    def check_gamepad_input(self):
+        """Check for any gamepad input to start the game."""
+        if not self.gamepad_manager:
+            return
+
+        # Check both gamepads for any button press or stick movement
+        for gamepad_index in [0, 1]:
+            if self.gamepad_manager.is_gamepad_connected(gamepad_index):
+                gamepad_input = self.gamepad_manager.get_gamepad_input(gamepad_index)
+                if gamepad_input:
+                    # Check if shoot button is pressed
+                    if gamepad_input.get("shoot_button", False):
+                        self.start_game()
+                        return
+                    # Check if any stick is moved significantly
+                    left_x = gamepad_input.get("left_stick_x", 0.0)
+                    left_y = gamepad_input.get("left_stick_y", 0.0)
+                    if abs(left_x) > 0.1 or abs(left_y) > 0.1:
+                        self.start_game()
+                        return
+
+    def start_game(self):
+        """Start the actual game and close launch screen."""
+        self.input_timer.stop()
+        self.hide()
+        self.controller.start_actual_game()
 
 
 class MultiPlayerController:
@@ -18,9 +165,18 @@ class MultiPlayerController:
         self.game_engine = GameEngine()
         self.split_screen_window = None
         self.game_timer = None
+        self.launch_screen = None
 
-    def start_game(self):
-        """Initialize and start the multi-player game."""
+    def start_launch_screen(self):
+        """Show the launch screen."""
+        self.launch_screen = LaunchScreen(self)
+        self.launch_screen.show()
+        self.launch_screen.activateWindow()  # Bring to front
+        self.launch_screen.raise_()  # Ensure it's on top
+        self.launch_screen.setFocus()  # Give it keyboard focus
+
+    def start_actual_game(self):
+        """Initialize and start the multi-player game (called from launch screen)."""
         # Create the purple dot for player 2
         self.game_engine.create_purple_dot()
 
@@ -33,40 +189,9 @@ class MultiPlayerController:
         self.game_timer.timeout.connect(self.game_engine.update_game_state)
         self.game_timer.start(16)  # ~60 FPS
 
-        # Show instructions
-        self.show_instructions()
-
-    def show_instructions(self):
-        """Show game instructions to the user."""
-        instructions = """
-Split-Screen Multi-Player Topographical Plane Game
-
-CONTROLS:
-Player 1 (Red Dot - Left Screen):
-- Move: Arrow Keys
-- Shoot: Spacebar
-
-Player 2 (Purple Dot - Right Screen):  
-- Move: WASD Keys
-- Shoot: Left Ctrl
-
-GAMEPLAY:
-- Left screen follows the red dot
-- Right screen follows the purple dot
-- All objects interact with each other
-- Hit the blue square to make it move and spin
-- Players can collide with each other
-- Projectiles affect all objects
-
-Both players can play simultaneously on the same keyboard!
-
-Have fun!
-        """
-
-        msg = QMessageBox()
-        msg.setWindowTitle("Split-Screen Game Instructions")
-        msg.setText(instructions)
-        msg.exec()
+    def start_game(self):
+        """Legacy method - now just shows launch screen."""
+        self.start_launch_screen()
 
 
 def main():
