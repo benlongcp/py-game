@@ -19,8 +19,10 @@ FPS_COUNTER_BACKGROUND = (0, 0, 0, 150)  # Semi-transparent black background
 # Grid settings
 GRID_SPACING = 30
 GRID_DOT_RADIUS = 1
-GRID_RADIUS_X = 1000  # Horizontal radius (major axis)
-GRID_RADIUS_Y = 500  # Vertical radius (minor axis, for 2:1 ellipse)
+GRID_RADIUS_X = 1500  # Horizontal radius (major axis) - increased 50% from 1000
+GRID_RADIUS_Y = (
+    750  # Vertical radius (minor axis, for 2:1 ellipse) - increased 50% from 500
+)
 GRID_RADIUS = GRID_RADIUS_X  # Keep for backward compatibility
 GRID_COLOR = (200, 200, 200)  # Light grey
 
