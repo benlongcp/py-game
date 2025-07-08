@@ -1004,5 +1004,21 @@ class Renderer:
                 int(black_hole.radius * 2),
             )
 
+            # Add slow white pulsing effect on the center (5-second cycle)
+            pulse_intensity = black_hole.get_pulse_intensity()
+            white_alpha = int(
+                pulse_intensity * 150
+            )  # Max alpha of 150 for visible white effect
+            if white_alpha > 0:
+                painter.setBrush(
+                    QBrush(QColor(255, 255, 255, white_alpha))
+                )  # White with alpha
+                painter.drawEllipse(
+                    int(screen_x - black_hole.radius),
+                    int(screen_y - black_hole.radius),
+                    int(black_hole.radius * 2),
+                    int(black_hole.radius * 2),
+                )
+
         finally:
             painter.restore()

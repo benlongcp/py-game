@@ -967,27 +967,22 @@ class BlackHole:
         import random
         from config import GRID_RADIUS_X, GRID_RADIUS_Y
 
-        # Random position within elliptical play area (not too close to edges)
+        # Random position on the edge of the elliptical play area
         angle = random.uniform(0, 2 * math.pi)
-        # Use 70% of max radius to avoid spawning too close to edges
-        max_distance = min(GRID_RADIUS_X, GRID_RADIUS_Y) * 0.7
-        distance = random.uniform(0, max_distance)
 
-        self.x = float(
-            math.cos(angle)
-            * distance
-            * (GRID_RADIUS_X / min(GRID_RADIUS_X, GRID_RADIUS_Y))
-        )
-        self.y = float(
-            math.sin(angle)
-            * distance
-            * (GRID_RADIUS_Y / min(GRID_RADIUS_X, GRID_RADIUS_Y))
-        )
+        # Place black hole very close to the elliptical boundary (95% of the way to edge)
+        # This ensures it starts on the edge but has a small buffer to avoid boundary collision issues
+        edge_factor = 0.95
 
-        # Size similar to blue square
+        # Calculate position on ellipse using parametric equations
+        # For ellipse: x = a*cos(θ), y = b*sin(θ)
+        self.x = float(GRID_RADIUS_X * math.cos(angle) * edge_factor)
+        self.y = float(GRID_RADIUS_Y * math.sin(angle) * edge_factor)
+
+        # Size similar to blue square but 50% smaller
         self.radius = (
-            DOT_RADIUS * SQUARE_SIZE_MULTIPLIER * 0.75
-        )  # Slightly smaller than blue square
+            DOT_RADIUS * SQUARE_SIZE_MULTIPLIER * 0.375
+        )  # 50% smaller than original (0.75 * 0.5 = 0.375)
 
         # Random slow movement
         self.velocity_x = random.uniform(-1.5, 1.5)  # Slow movement
@@ -995,11 +990,17 @@ class BlackHole:
 
         # Gravitational properties - 10x stronger than goal circles
         self.gravity_strength = GRAVITY_STRENGTH * 10.0  # 10x stronger
-        self.gravity_radius = self.radius * 3.0  # 3x radius for gravity field
+        self.gravity_radius = (
+            self.radius * 20.0
+        )  # 20x radius for gravity field (extends far beyond visible circle)
         self.max_gravity_distance = self.gravity_radius
 
         # Visual properties for gradient
         self.gradient_radius = self.radius * 2.0  # Gradient extends 2x the hole radius
+
+        # Pulse effect for visual appeal - slow 5-second cycle
+        self.pulse_timer = 0.0  # Timer for pulsing effect
+        self.pulse_duration = 300.0  # 300 frames = 5.0 seconds at 60fps
 
     def update_physics(self):
         """Update black hole position with slow random movement."""
@@ -1058,6 +1059,11 @@ class BlackHole:
                 scale = max_speed / speed
                 self.velocity_x *= scale
                 self.velocity_y *= scale
+
+        # Update pulse timer for visual effect
+        self.pulse_timer += 1.0
+        if self.pulse_timer >= self.pulse_duration:
+            self.pulse_timer = 0.0
 
     def apply_gravity_to_object(self, obj):
         """
@@ -1127,3 +1133,11 @@ class BlackHole:
             and screen_y + gradient_margin >= 0
             and screen_y - gradient_margin <= view_height
         )
+
+    def get_pulse_intensity(self):
+        """Get the current pulse intensity for visual effects (0.0 to 1.0)."""
+        import math
+
+        # Create a sine wave pulse that goes from 0.0 to 1.0
+        progress = self.pulse_timer / self.pulse_duration
+        return (math.sin(progress * 2 * math.pi) + 1.0) * 0.5  # Convert -1..1 to 0..1
