@@ -27,81 +27,90 @@ class Renderer:
         else:
             return base_spacing
 
+    # --- Grid Dot Caching ---
+    _cached_grid_params = None  # (camera_x, camera_y, view_center_x, view_center_y, grid_spacing, vertical_offset)
+    _cached_grid_points = []
+
+    @staticmethod
+    def _compute_grid_points(
+        camera_x, camera_y, view_center_x, view_center_y, grid_spacing, vertical_offset
+    ):
+        grid_points = []
+        world_origin_screen_x = view_center_x - camera_x
+        world_origin_screen_y = view_center_y - camera_y
+        grid_center_x = world_origin_screen_x
+        grid_center_y = world_origin_screen_y
+        min_y = grid_center_y - GRID_RADIUS
+        max_y = grid_center_y + GRID_RADIUS
+        start_row = int((min_y - grid_center_y) / vertical_offset) - 2
+        end_row = int((max_y - grid_center_y) / vertical_offset) + 2
+        for row in range(start_row, end_row + 1):
+            y = grid_center_y + (row * vertical_offset)
+            if y < -GRID_DOT_RADIUS or y > (view_center_y * 2) + GRID_DOT_RADIUS:
+                continue
+            x_offset = 0 if row % 2 == 0 else grid_spacing / 2
+            min_x = grid_center_x - GRID_RADIUS
+            max_x = grid_center_x + GRID_RADIUS
+            start_col = int((min_x - grid_center_x - x_offset) / grid_spacing) - 1
+            end_col = int((max_x - grid_center_x - x_offset) / grid_spacing) + 1
+            for col in range(start_col, end_col + 1):
+                x = grid_center_x + (col * grid_spacing) + x_offset
+                if x < -GRID_DOT_RADIUS or x > (view_center_x * 2) + GRID_DOT_RADIUS:
+                    continue
+                grid_distance = math.sqrt(
+                    (x - grid_center_x) ** 2 + (y - grid_center_y) ** 2
+                )
+                if grid_distance <= GRID_RADIUS:
+                    grid_points.append(QPointF(x, y))
+        return grid_points
+
     @staticmethod
     def draw_triangular_grid(painter, camera_x, camera_y, view_center_x, view_center_y):
         """
         Draw the triangular grid of simple dots for better performance.
-
-        Args:
-            painter: QPainter instance
-            camera_x, camera_y: Camera position in world coordinates
-            view_center_x, view_center_y: Center coordinates of the current view
+        Implements: disables antialiasing for grid, uses drawPoints, caches grid points.
         """
-        # Set up pen and brush for simple dots
-        painter.setPen(QPen(QColor(200, 200, 200), 1))
-        painter.setBrush(QBrush(QColor(240, 240, 240)))
-
-        # The world origin (0,0) should appear at screen coordinates that account for camera offset
-        world_origin_screen_x = view_center_x - camera_x
-        world_origin_screen_y = view_center_y - camera_y
-
-        grid_center_x = world_origin_screen_x
-        grid_center_y = world_origin_screen_y
-
         # Use adaptive grid spacing
         view_width = view_center_x * 2
         view_height = view_center_y * 2
         grid_spacing = Renderer.get_adaptive_grid_spacing(view_width, view_height)
         vertical_offset = grid_spacing * math.sqrt(3) / 2
 
-        # Calculate visible range
-        min_y = grid_center_y - GRID_RADIUS
-        max_y = grid_center_y + GRID_RADIUS
+        # Cache key: (camera_x, camera_y, view_center_x, view_center_y, grid_spacing, vertical_offset)
+        cache_params = (
+            camera_x,
+            camera_y,
+            view_center_x,
+            view_center_y,
+            grid_spacing,
+            vertical_offset,
+        )
+        if Renderer._cached_grid_params != cache_params:
+            Renderer._cached_grid_points = Renderer._compute_grid_points(
+                camera_x,
+                camera_y,
+                view_center_x,
+                view_center_y,
+                grid_spacing,
+                vertical_offset,
+            )
+            Renderer._cached_grid_params = cache_params
 
-        start_row = int((min_y - grid_center_y) / vertical_offset) - 2
-        end_row = int((max_y - grid_center_y) / vertical_offset) + 2
+        # Set up pen for simple dots (no brush needed for drawPoints)
+        painter.setPen(QPen(QColor(200, 200, 200), 1))
+        from PyQt6.QtCore import Qt
 
-        # Draw grid rows
-        for row in range(start_row, end_row + 1):
-            y = grid_center_y + (row * vertical_offset)
+        painter.setBrush(Qt.BrushStyle.NoBrush)
 
-            # Skip rows outside the window
-            if y < -GRID_DOT_RADIUS or y > (view_center_y * 2) + GRID_DOT_RADIUS:
-                continue
+        # Disable antialiasing for grid dots
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, False)
 
-            # Calculate horizontal offset for triangular pattern
-            x_offset = 0 if row % 2 == 0 else grid_spacing / 2
+        # Draw all grid points as 1x1 dots (drawPoints is much faster)
+        if Renderer._cached_grid_points:
+            painter.drawPoints(Renderer._cached_grid_points)
 
-            # Calculate visible columns for this row
-            min_x = grid_center_x - GRID_RADIUS
-            max_x = grid_center_x + GRID_RADIUS
-
-            start_col = int((min_x - grid_center_x - x_offset) / grid_spacing) - 1
-            end_col = int((max_x - grid_center_x - x_offset) / grid_spacing) + 1
-
-            # Draw dots in this row
-            for col in range(start_col, end_col + 1):
-                x = grid_center_x + (col * grid_spacing) + x_offset
-
-                # Skip dots outside the window
-                if x < -GRID_DOT_RADIUS or x > (view_center_x * 2) + GRID_DOT_RADIUS:
-                    continue
-
-                # Check if dot is within the circular grid boundary
-                grid_distance = math.sqrt(
-                    (x - grid_center_x) ** 2 + (y - grid_center_y) ** 2
-                )
-                if grid_distance <= GRID_RADIUS:
-                    # Draw simple dot for much better performance
-                    dot_radius = GRID_DOT_RADIUS
-                    painter.drawEllipse(
-                        QRectF(
-                            x - dot_radius,
-                            y - dot_radius,
-                            dot_radius * 2,
-                            dot_radius * 2,
-                        )
-                    )
+        # Re-enable antialiasing for other objects
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
 
     @staticmethod
     def draw_vignette_gradient(
