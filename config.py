@@ -18,7 +18,7 @@ FPS_COUNTER_BACKGROUND = (0, 0, 0, 150)  # Semi-transparent black background
 
 # Grid settings
 GRID_SPACING = 30
-GRID_DOT_RADIUS = 2
+GRID_DOT_RADIUS = 1
 GRID_RADIUS = 1000  # 2000px diameter = 1000px radius
 GRID_COLOR = (200, 200, 200)  # Light grey
 

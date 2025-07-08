@@ -299,6 +299,7 @@ class SplitScreenView(QWidget):
         view_center_y = height / 2
         view_width = width
         view_height = height
+        view_height = height
 
         # Get camera position and following_dot based on which player this view is following
         if player_number == 1:
@@ -687,12 +688,13 @@ class SplitScreenView(QWidget):
         # Update FPS counter
         self._update_fps()
 
-        # Calculate dynamic view dimensions
+        # Calculate dynamic view dimensions - allow play area to stretch to fit window
         window_width = widget.width()
         window_height = widget.height()
         divider_width = 20
 
-        # Use full height since FPS counter is disabled
+        # Use full window size for play area calculations (no resolution capping)
+        # Performance is managed through adaptive grid spacing and simple dot rendering
         view_height = window_height
         view_width = (window_width - divider_width) // 2
 

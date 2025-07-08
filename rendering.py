@@ -16,11 +16,9 @@ class Renderer:
     def get_adaptive_grid_spacing(view_width, view_height):
         """
         Returns an adaptive grid spacing based on the view size.
-        Increases spacing for very large windows to reduce draw calls.
+        75% less dense for better performance (4x larger spacing = 75% fewer dots).
         """
-        base_spacing = int(
-            GRID_SPACING * 3.0
-        )  # 50% less dense again (total 75% less dense)
+        base_spacing = int(GRID_SPACING * 4.0)  # 75% less dense (quadruple the spacing)
         max_dim = max(view_width, view_height)
         if max_dim > 1600:
             return base_spacing * 2
@@ -32,21 +30,17 @@ class Renderer:
     @staticmethod
     def draw_triangular_grid(painter, camera_x, camera_y, view_center_x, view_center_y):
         """
-        Draw the triangular grid of dots.
+        Draw the triangular grid of simple dots for better performance.
 
         Args:
             painter: QPainter instance
             camera_x, camera_y: Camera position in world coordinates
             view_center_x, view_center_y: Center coordinates of the current view
         """
-        # Prepare SVG renderer for star icon (import here to avoid circular import)
-        from objects import SVG_STAR_ICON
-        from PyQt6.QtSvg import QSvgRenderer
-        from PyQt6.QtCore import QByteArray, QRectF
+        # Set up pen and brush for simple dots
+        painter.setPen(QPen(QColor(200, 200, 200), 1))
+        painter.setBrush(QBrush(QColor(240, 240, 240)))
 
-        star_renderer = QSvgRenderer(QByteArray(SVG_STAR_ICON.encode("utf-8")))
-
-        # No pen/brush needed for SVG
         # The world origin (0,0) should appear at screen coordinates that account for camera offset
         world_origin_screen_x = view_center_x - camera_x
         world_origin_screen_y = view_center_y - camera_y
@@ -98,10 +92,16 @@ class Renderer:
                     (x - grid_center_x) ** 2 + (y - grid_center_y) ** 2
                 )
                 if grid_distance <= GRID_RADIUS:
-                    # Draw SVG star icon centered at (x, y), scaled to grid dot size
-                    size = GRID_DOT_RADIUS * 2
-                    rect = QRectF(x - size / 2, y - size / 2, size, size)
-                    star_renderer.render(painter, rect)
+                    # Draw simple dot for much better performance
+                    dot_radius = GRID_DOT_RADIUS
+                    painter.drawEllipse(
+                        QRectF(
+                            x - dot_radius,
+                            y - dot_radius,
+                            dot_radius * 2,
+                            dot_radius * 2,
+                        )
+                    )
 
     @staticmethod
     def draw_vignette_gradient(
