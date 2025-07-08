@@ -412,6 +412,7 @@ class GameEngine:
         if gamepad_controlling_player1:
             # Use gamepad input for Player 1
             gamepad1_input = self._gamepad_manager.get_gamepad_input(GAMEPAD_1_INDEX)
+            print(f"[DEBUG] Player 1 gamepad input: {gamepad1_input}")  # Debug print
             max_speed = self.get_player1_effective_top_speed()
             self.red_dot.acceleration_x = (
                 gamepad1_input["left_stick_x"] * ANALOG_STICK_MULTIPLIER
@@ -425,6 +426,11 @@ class GameEngine:
                 scale = max_speed / speed
                 self.red_dot.velocity_x *= scale
                 self.red_dot.velocity_y *= scale
+            # Handle projectile firing with 'A' button (shoot_button)
+            a_pressed = gamepad1_input.get("shoot_button", 0) == 1
+            if a_pressed and not self.gamepad1_shoot_pressed:
+                self.shoot_projectile_player1()
+            self.gamepad1_shoot_pressed = a_pressed
         else:
             # Use keyboard input for Player 1
             self.red_dot.acceleration_x = 0
@@ -438,6 +444,9 @@ class GameEngine:
                 self.red_dot.acceleration_y = -ACCELERATION
             if Qt.Key.Key_Down in self.player1_keys:
                 self.red_dot.acceleration_y = ACCELERATION
+            # Keyboard firing (e.g., Enter key)
+            if Qt.Key.Key_Return in self.player1_keys or Qt.Key.Key_Enter in self.player1_keys:
+                self.shoot_projectile_player1()
 
         # Player 2 (Purple dot) - Check gamepad first, then keyboard fallback
         if self.purple_dot is not None:
@@ -453,6 +462,7 @@ class GameEngine:
                 gamepad2_input = self._gamepad_manager.get_gamepad_input(
                     GAMEPAD_2_INDEX
                 )
+                print(f"[DEBUG] Player 2 gamepad input: {gamepad2_input}")  # Debug print
                 max_speed2 = self.get_player2_effective_top_speed()
                 self.purple_dot.acceleration_x = (
                     gamepad2_input["left_stick_x"] * ANALOG_STICK_MULTIPLIER
@@ -467,6 +477,11 @@ class GameEngine:
                     scale2 = max_speed2 / speed2
                     self.purple_dot.velocity_x *= scale2
                     self.purple_dot.velocity_y *= scale2
+                # Handle projectile firing with 'A' button (shoot_button)
+                a_pressed2 = gamepad2_input.get("shoot_button", 0) == 1
+                if a_pressed2 and not self.gamepad2_shoot_pressed:
+                    self.shoot_projectile_player2()
+                self.gamepad2_shoot_pressed = a_pressed2
             else:
                 # Use keyboard input for Player 2
                 self.purple_dot.acceleration_x = 0
@@ -480,6 +495,9 @@ class GameEngine:
                     self.purple_dot.acceleration_y = -ACCELERATION
                 if Qt.Key.Key_S in self.player2_keys:
                     self.purple_dot.acceleration_y = ACCELERATION
+                # Keyboard firing (e.g., Ctrl key)
+                if Qt.Key.Key_Control in self.player2_keys:
+                    self.shoot_projectile_player2()
 
     def _update_physics(self):
         """Update physics for all objects."""
