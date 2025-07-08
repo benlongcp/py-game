@@ -205,79 +205,79 @@ class SplitScreenView(QWidget):
     def _draw_fps_counter_bottom_center(self, painter):
         """Draw FPS counter at the horizontal center of the window at the very bottom."""
         painter.save()
+        try:
+            # Reset clipping to draw on the full window
+            painter.setClipping(False)
 
-        # Reset clipping to draw on the full window
-        painter.setClipping(False)
+            # Set up colors from config
+            text_color = QColor(*FPS_COUNTER_COLOR)
 
-        # Set up colors from config
-        text_color = QColor(*FPS_COUNTER_COLOR)
+            # Set font
+            font = QFont("Arial", 12, QFont.Weight.Bold)
+            painter.setFont(font)
 
-        # Set font
-        font = QFont("Arial", 12, QFont.Weight.Bold)
-        painter.setFont(font)
+            # Calculate text metrics
+            fps_text = f"FPS: {self.fps_display:.1f}"
+            font_metrics = painter.fontMetrics()
+            text_width = font_metrics.horizontalAdvance(fps_text)
 
-        # Calculate text metrics
-        fps_text = f"FPS: {self.fps_display:.1f}"
-        font_metrics = painter.fontMetrics()
-        text_width = font_metrics.horizontalAdvance(fps_text)
+            # Position at left side, at the very bottom
+            window_width = self.width()
+            window_height = self.height()
 
-        # Position at left side, at the very bottom
-        window_width = self.width()
-        window_height = self.height()
+            # Left-justify with margin from left edge
+            x = 10  # 10px margin from left edge
+            y = window_height - 8  # 8px margin from bottom edge
 
-        # Left-justify with margin from left edge
-        x = 10  # 10px margin from left edge
-        y = window_height - 8  # 8px margin from bottom edge
-
-        # Draw text
-        painter.setPen(QPen(text_color))
-        painter.drawText(x, y, fps_text)
-
-        painter.restore()
+            # Draw text
+            painter.setPen(QPen(text_color))
+            painter.drawText(x, y, fps_text)
+        finally:
+            painter.restore()
 
     def _draw_fps_counter_centered_bottom(self, painter):
         """Draw FPS counter in a dedicated row at the bottom, centered between split screens."""
         painter.save()
+        try:
+            # Reset clipping to draw on the full window
+            painter.setClipping(False)
 
-        # Reset clipping to draw on the full window
-        painter.setClipping(False)
+            # Set up colors from config
+            row_background = QColor(*FPS_COUNTER_BACKGROUND)
+            text_color = QColor(*FPS_COUNTER_COLOR)
 
-        # Set up colors from config
-        row_background = QColor(*FPS_COUNTER_BACKGROUND)
-        text_color = QColor(*FPS_COUNTER_COLOR)
+            # Set font
+            font = QFont("Arial", 14, QFont.Weight.Bold)
+            painter.setFont(font)
 
-        # Set font
-        font = QFont("Arial", 14, QFont.Weight.Bold)
-        painter.setFont(font)
+            # Calculate text metrics
+            fps_text = f"FPS: {self.fps_display:.1f}"
+            font_metrics = painter.fontMetrics()
+            text_width = font_metrics.horizontalAdvance(fps_text)
+            text_height = font_metrics.height()
 
-        # Calculate text metrics
-        fps_text = f"FPS: {self.fps_display:.1f}"
-        font_metrics = painter.fontMetrics()
-        text_width = font_metrics.horizontalAdvance(fps_text)
-        text_height = font_metrics.height()
+            # Define row height
+            row_height = max(36, text_height + 10)
+            window_width = self.width()
+            window_height = self.height()
 
-        # Define row height
-        row_height = max(36, text_height + 10)
-        window_width = self.width()
-        window_height = self.height()
+            divider_width = 20
+            row_y = window_height - row_height
 
-        divider_width = 20
-        row_y = window_height - row_height
+            # Draw full-width background row
+            painter.setBrush(QBrush(row_background))
+            painter.setPen(QPen(QColor(0, 0, 0, 0)))  # No border
+            painter.drawRect(0, row_y, window_width, row_height)
 
-        # Draw full-width background row
-        painter.setBrush(QBrush(row_background))
-        painter.setPen(QPen(QColor(0, 0, 0, 0)))  # No border
-        painter.drawRect(0, row_y, window_width, row_height)
-
-        # Draw FPS text centered in the full container (window)
-        center_x = window_width // 2
-        x = center_x - text_width // 2
-        # Properly center text vertically in the row
-        y = row_y + row_height // 2 + text_height // 2 - font_metrics.descent()
-        painter.setPen(QPen(text_color))
-        painter.drawText(x, y, fps_text)
-
-        painter.restore()
+            # Draw FPS text centered in the full container (window)
+            center_x = window_width // 2
+            x = center_x - text_width // 2
+            # Properly center text vertically in the row
+            y = row_y + row_height // 2 + text_height // 2 - font_metrics.descent()
+            painter.setPen(QPen(text_color))
+            painter.drawText(x, y, fps_text)
+        finally:
+            painter.restore()
 
     def _draw_player_view(
         self,
@@ -292,198 +292,203 @@ class SplitScreenView(QWidget):
         """Draw a single player's view."""
         # Set clipping rectangle for this view
         painter.save()
-        painter.setClipRect(x_offset, y_offset, width, height)
+        try:
+            painter.setClipRect(x_offset, y_offset, width, height)
 
-        # Calculate view center for this player's view
-        view_center_x = width / 2
-        view_center_y = height / 2
-        view_width = width
-        view_height = height
-        view_height = height
+            # Calculate view center for this player's view
+            view_center_x = width / 2
+            view_center_y = height / 2
+            view_width = width
+            view_height = height
+            view_height = height
 
-        # Get camera position and following_dot based on which player this view is following
-        if player_number == 1:
-            camera_x = self.game_engine.red_dot.virtual_x
-            camera_y = self.game_engine.red_dot.virtual_y
-            following_dot = self.game_engine.red_dot
-        else:
-            if self.game_engine.purple_dot is not None:
-                camera_x = self.game_engine.purple_dot.virtual_x
-                camera_y = self.game_engine.purple_dot.virtual_y
-                following_dot = self.game_engine.purple_dot
-            else:
+            # Get camera position and following_dot based on which player this view is following
+            if player_number == 1:
                 camera_x = self.game_engine.red_dot.virtual_x
                 camera_y = self.game_engine.red_dot.virtual_y
                 following_dot = self.game_engine.red_dot
-
-        # --- Grid Caching ---
-        # Always check and update the grid cache for each player view
-        grid_spacing = Renderer.get_adaptive_grid_spacing(view_width, view_height)
-        cache_idx = 0 if player_number == 2 else 1
-        cache_params = (camera_x, camera_y, width, height, grid_spacing)
-        cache = self._grid_cache[cache_idx]
-        params = self._grid_cache_params[cache_idx]
-        needs_redraw = cache is None or params is None or params != cache_params
-        if needs_redraw:
-            # print(f"Redrawing grid for player {player_number} (cache_idx={cache_idx})")
-            grid_pixmap = QPixmap(width, height)
-            grid_pixmap.fill(QColor(0, 0, 0))  # Fill with black
-            grid_painter = QPainter(grid_pixmap)
-            Renderer.draw_triangular_grid(
-                grid_painter, camera_x, camera_y, view_center_x, view_center_y
-            )
-            grid_painter.end()
-            self._grid_cache[cache_idx] = grid_pixmap
-            self._grid_cache_params[cache_idx] = cache_params
-        # Translate painter to the view's coordinate system
-        painter.translate(x_offset, y_offset)
-        # Blit grid pixmap at (0,0) in local view coordinates
-        painter.drawPixmap(0, 0, self._grid_cache[cache_idx])
-        # --- End Grid Caching ---
-
-        # Draw vignette and all other elements as before (no change)
-        Renderer.draw_vignette_gradient(
-            painter, camera_x, camera_y, view_center_x, view_center_y
-        )
-        Renderer.draw_static_circles(
-            painter, camera_x, camera_y, width, height, self.game_engine
-        )
-        Renderer.draw_gravitational_dots(painter, camera_x, camera_y, width, height)
-        Renderer.draw_blue_square(
-            painter, self.game_engine.blue_square, camera_x, camera_y, width, height
-        )
-        Renderer.draw_projectiles(
-            painter, self.game_engine.projectiles, camera_x, camera_y, width, height
-        )
-
-        # Draw the dot this view is following at center
-        if player_number == 1:
-            Renderer.draw_red_dot(
-                painter, self.game_engine.red_dot, view_center_x, view_center_y
-            )
-        else:
-            # For player 2 view, draw purple ship SVG at center (not dot)
-            Renderer.draw_purple_dot_centered(
-                painter, self.game_engine.purple_dot, view_center_x, view_center_y
-            )
-
-        # Draw the other player's dot in world coordinates if it exists
-        if player_number == 1 and self.game_engine.purple_dot is not None:
-            Renderer.draw_purple_dot(
-                painter,
-                self.game_engine.purple_dot,
-                camera_x,
-                camera_y,
-                view_center_x,
-                view_center_y,
-            )
-        elif player_number == 2:
-            # Draw red dot in world coordinates when viewing from purple dot
-            Renderer.draw_red_dot_world(
-                painter,
-                self.game_engine.red_dot,
-                camera_x,
-                camera_y,
-                view_center_x,
-                view_center_y,
-            )
-
-        # Draw off-screen indicator for blue square if it's not visible
-        Renderer.draw_off_screen_indicator(
-            painter, self.game_engine.blue_square, camera_x, camera_y, width, height
-        )
-
-        # Draw player labels
-        painter.setPen(QPen(QColor(0, 0, 0), 2))
-        if player_number == 1:
-            if GAMEPAD_ENABLED and self.gamepad_manager.is_gamepad_connected(
-                GAMEPAD_1_INDEX
-            ):
-                painter.drawText(10, 25, "Player 1 (Red) - Gamepad 1")
             else:
-                painter.drawText(10, 25, "Player 1 (Red) - Arrow Keys + Enter")
-        else:
-            if GAMEPAD_ENABLED and self.gamepad_manager.is_gamepad_connected(
-                GAMEPAD_2_INDEX
-            ):
-                painter.drawText(10, 25, "Player 2 (Purple) - Gamepad 2")
+                if self.game_engine.purple_dot is not None:
+                    camera_x = self.game_engine.purple_dot.virtual_x
+                    camera_y = self.game_engine.purple_dot.virtual_y
+                    following_dot = self.game_engine.purple_dot
+                else:
+                    camera_x = self.game_engine.red_dot.virtual_x
+                    camera_y = self.game_engine.red_dot.virtual_y
+                    following_dot = self.game_engine.red_dot
+
+            # --- Grid Caching ---
+            # Always check and update the grid cache for each player view
+            grid_spacing = Renderer.get_adaptive_grid_spacing(view_width, view_height)
+            cache_idx = 0 if player_number == 2 else 1
+            cache_params = (camera_x, camera_y, width, height, grid_spacing)
+            cache = self._grid_cache[cache_idx]
+            params = self._grid_cache_params[cache_idx]
+            needs_redraw = cache is None or params is None or params != cache_params
+            if needs_redraw:
+                # print(f"Redrawing grid for player {player_number} (cache_idx={cache_idx})")
+                grid_pixmap = QPixmap(width, height)
+                grid_pixmap.fill(QColor(0, 0, 0))  # Fill with black
+                grid_painter = QPainter(grid_pixmap)
+                Renderer.draw_triangular_grid(
+                    grid_painter, camera_x, camera_y, view_center_x, view_center_y
+                )
+                grid_painter.end()
+                self._grid_cache[cache_idx] = grid_pixmap
+                self._grid_cache_params[cache_idx] = cache_params
+            # Translate painter to the view's coordinate system
+            painter.translate(x_offset, y_offset)
+            # Blit grid pixmap at (0,0) in local view coordinates
+            painter.drawPixmap(0, 0, self._grid_cache[cache_idx])
+            # --- End Grid Caching ---
+
+            # Draw vignette and all other elements as before (no change)
+            Renderer.draw_vignette_gradient(
+                painter, camera_x, camera_y, view_center_x, view_center_y
+            )
+            Renderer.draw_static_circles(
+                painter, camera_x, camera_y, width, height, self.game_engine
+            )
+            Renderer.draw_gravitational_dots(painter, camera_x, camera_y, width, height)
+            Renderer.draw_blue_square(
+                painter, self.game_engine.blue_square, camera_x, camera_y, width, height
+            )
+            Renderer.draw_projectiles(
+                painter, self.game_engine.projectiles, camera_x, camera_y, width, height
+            )
+
+            # Draw the dot this view is following at center
+            if player_number == 1:
+                Renderer.draw_red_dot(
+                    painter, self.game_engine.red_dot, view_center_x, view_center_y
+                )
             else:
-                painter.drawText(10, 25, "Player 2 (Purple) - WASD + Ctrl")
+                # For player 2 view, draw purple ship SVG at center (not dot)
+                Renderer.draw_purple_dot_centered(
+                    painter, self.game_engine.purple_dot, view_center_x, view_center_y
+                )
 
-        # Draw status display (score, hit points, and rate limiters)
-        red_score = self.game_engine.get_red_player_score()
-        purple_score = self.game_engine.get_purple_player_score()
-        red_hp = self.game_engine.get_red_player_hp()
-        purple_hp = self.game_engine.get_purple_player_hp()
+            # Draw the other player's dot in world coordinates if it exists
+            if player_number == 1 and self.game_engine.purple_dot is not None:
+                Renderer.draw_purple_dot(
+                    painter,
+                    self.game_engine.purple_dot,
+                    camera_x,
+                    camera_y,
+                    view_center_x,
+                    view_center_y,
+                )
+            elif player_number == 2:
+                # Draw red dot in world coordinates when viewing from purple dot
+                Renderer.draw_red_dot_world(
+                    painter,
+                    self.game_engine.red_dot,
+                    camera_x,
+                    camera_y,
+                    view_center_x,
+                    view_center_y,
+                )
 
-        # Get rate limiter progress for both players
-        player1_rate_data = self.game_engine.get_player1_rate_limiter_progress()
-        player2_rate_data = self.game_engine.get_player2_rate_limiter_progress()
+            # Draw off-screen indicator for blue square if it's not visible
+            Renderer.draw_off_screen_indicator(
+                painter, self.game_engine.blue_square, camera_x, camera_y, width, height
+            )
 
-        # Draw status display - each player sees only their own info
-        # Draw status display - each player sees only their own info
-        # Add extra margin below the status block before powerup column
-        POWERUP_MARGIN = 24  # Increased vertical margin (was 0)
-        status_block_y = 50
-        # The StatusDisplay likely draws at y=50 and is about 50-60px tall, so add extra margin
-        powerup_column_y = status_block_y + 60 + POWERUP_MARGIN
-        if player_number == 1:
-            # Player 1 view - show only Player 1 status
-            StatusDisplay.draw_player_status(
-                painter,
-                10,
-                status_block_y,
-                "Player 1",
-                red_hp,
-                red_score,
-                player1_rate_data,
-                self.points_to_win,
-            )
-            # Draw Player 1 powerup status text under status column
-            self._draw_powerup_status_column(
-                painter, player_number, 10, powerup_column_y
-            )
-        else:
-            # Player 2 view - show only Player 2 status
-            StatusDisplay.draw_player_status(
-                painter,
-                10,
-                status_block_y,
-                "Player 2",
-                purple_hp,
-                purple_score,
-                player2_rate_data,
-                self.points_to_win,
-            )
-            # Draw Player 2 powerup status text under status column
-            self._draw_powerup_status_column(
-                painter, player_number, 10, powerup_column_y
-            )
+            # Draw player labels
+            painter.setPen(QPen(QColor(0, 0, 0), 2))
+            if player_number == 1:
+                if GAMEPAD_ENABLED and self.gamepad_manager.is_gamepad_connected(
+                    GAMEPAD_1_INDEX
+                ):
+                    painter.drawText(10, 25, "Player 1 (Red) - Gamepad 1")
+                else:
+                    painter.drawText(10, 25, "Player 1 (Red) - Arrow Keys + Enter")
+            else:
+                if GAMEPAD_ENABLED and self.gamepad_manager.is_gamepad_connected(
+                    GAMEPAD_2_INDEX
+                ):
+                    painter.drawText(10, 25, "Player 2 (Purple) - Gamepad 2")
+                else:
+                    painter.drawText(10, 25, "Player 2 (Purple) - WASD + Ctrl")
+
+            # Draw status display (score, hit points, and rate limiters)
+            red_score = self.game_engine.get_red_player_score()
+            purple_score = self.game_engine.get_purple_player_score()
+            red_hp = self.game_engine.get_red_player_hp()
+            purple_hp = self.game_engine.get_purple_player_hp()
+
+            # Get rate limiter progress for both players
+            player1_rate_data = self.game_engine.get_player1_rate_limiter_progress()
+            player2_rate_data = self.game_engine.get_player2_rate_limiter_progress()
+
+            # Draw status display - each player sees only their own info
+            # Draw status display - each player sees only their own info
+            # Add extra margin below the status block before powerup column
+            POWERUP_MARGIN = 24  # Increased vertical margin (was 0)
+            status_block_y = 50
+            # The StatusDisplay likely draws at y=50 and is about 50-60px tall, so add extra margin
+            powerup_column_y = status_block_y + 60 + POWERUP_MARGIN
+            if player_number == 1:
+                # Player 1 view - show only Player 1 status
+                StatusDisplay.draw_player_status(
+                    painter,
+                    10,
+                    status_block_y,
+                    "Player 1",
+                    red_hp,
+                    red_score,
+                    player1_rate_data,
+                    self.points_to_win,
+                )
+                # Draw Player 1 powerup status text under status column
+                self._draw_powerup_status_column(
+                    painter, player_number, 10, powerup_column_y
+                )
+            else:
+                # Player 2 view - show only Player 2 status
+                StatusDisplay.draw_player_status(
+                    painter,
+                    10,
+                    status_block_y,
+                    "Player 2",
+                    purple_hp,
+                    purple_score,
+                    player2_rate_data,
+                    self.points_to_win,
+                )
+                # Draw Player 2 powerup status text under status column
+                self._draw_powerup_status_column(
+                    painter, player_number, 10, powerup_column_y
+                )
+        finally:
+            painter.restore()
 
     # Powerup status row at bottom removed. Now shown under status column.
     def _draw_powerup_status_column(self, painter, player_number, x, y):
         """Draws the powerup summary for the given player as a vertical column under their status block."""
         painter.save()
-        painter.setFont(QFont("Arial", 10, QFont.Weight.Normal))
-        fm = painter.fontMetrics()
-        if player_number == 1:
-            powerups = self.game_engine.player1_powerups
-        else:
-            powerups = self.game_engine.player2_powerups
-        summary = self._summarize_powerups(powerups) if powerups else []
-        col_x = x + 70
-        # Increase the vertical margin between the shots counter and the powerup status column
-        # Old: col_y = y
-        col_y = y + 24  # Increase margin (was 0, now 24px)
-        line_height = fm.height() + 2
-        if summary:
-            painter.setPen(QPen(QColor(255, 215, 0)))
-            for idx, item in enumerate(summary):
-                painter.drawText(col_x, col_y + idx * line_height, item)
-        else:
-            painter.setPen(QPen(QColor(180, 180, 180)))
-            painter.drawText(col_x, col_y, "No powerups")
-        painter.restore()
+        try:
+            painter.setFont(QFont("Arial", 10, QFont.Weight.Normal))
+            fm = painter.fontMetrics()
+            if player_number == 1:
+                powerups = self.game_engine.player1_powerups
+            else:
+                powerups = self.game_engine.player2_powerups
+            summary = self._summarize_powerups(powerups) if powerups else []
+            col_x = x + 70
+            # Increase the vertical margin between the shots counter and the powerup status column
+            # Old: col_y = y
+            col_y = y + 24  # Increase margin (was 0, now 24px)
+            line_height = fm.height() + 2
+            if summary:
+                painter.setPen(QPen(QColor(255, 215, 0)))
+                for idx, item in enumerate(summary):
+                    painter.drawText(col_x, col_y + idx * line_height, item)
+            else:
+                painter.setPen(QPen(QColor(180, 180, 180)))
+                painter.drawText(col_x, col_y, "No powerups")
+        finally:
+            painter.restore()
 
     def _summarize_powerups(self, powerups):
         # Count each stackable powerup
@@ -619,50 +624,50 @@ class SplitScreenView(QWidget):
     def _draw_fps_counter(self, painter):
         """Draw FPS counter overlay at the bottom of the window."""
         painter.save()
+        try:
+            # Reset clipping to draw on the full window
+            painter.setClipping(False)
 
-        # Reset clipping to draw on the full window
-        painter.setClipping(False)
+            # Set up colors from config
+            background_color = QColor(*FPS_COUNTER_BACKGROUND)
+            text_color = QColor(*FPS_COUNTER_COLOR)
 
-        # Set up colors from config
-        background_color = QColor(*FPS_COUNTER_BACKGROUND)
-        text_color = QColor(*FPS_COUNTER_COLOR)
+            # Set font
+            font = QFont("Arial", 12, QFont.Weight.Bold)
+            painter.setFont(font)
 
-        # Set font
-        font = QFont("Arial", 12, QFont.Weight.Bold)
-        painter.setFont(font)
+            # Calculate text metrics
+            fps_text = f"FPS: {self.fps_display:.1f}"
+            font_metrics = painter.fontMetrics()
+            text_width = font_metrics.horizontalAdvance(fps_text)
+            text_height = font_metrics.height()
 
-        # Calculate text metrics
-        fps_text = f"FPS: {self.fps_display:.1f}"
-        font_metrics = painter.fontMetrics()
-        text_width = font_metrics.horizontalAdvance(fps_text)
-        text_height = font_metrics.height()
+            # Centered at the bottom, with margin
+            window_width = self.width()
+            window_height = self.height()
+            margin = 20  # Space from bottom edge
+            x = (window_width - text_width) // 2
+            y = window_height - margin - text_height
 
-        # Centered at the bottom, with margin
-        window_width = self.width()
-        window_height = self.height()
-        margin = 20  # Space from bottom edge
-        x = (window_width - text_width) // 2
-        y = window_height - margin - text_height
+            # Draw background rectangle
+            padding = 8
+            painter.setBrush(QBrush(background_color))
+            painter.setPen(QPen(QColor(0, 0, 0, 0)))  # No border
+            painter.drawRoundedRect(
+                x - padding,
+                y - padding,
+                text_width + 2 * padding,
+                text_height + 2 * padding,
+                5,
+                5,  # Rounded corners
+            )
 
-        # Draw background rectangle
-        padding = 8
-        painter.setBrush(QBrush(background_color))
-        painter.setPen(QPen(QColor(0, 0, 0, 0)))  # No border
-        painter.drawRoundedRect(
-            x - padding,
-            y - padding,
-            text_width + 2 * padding,
-            text_height + 2 * padding,
-            5,
-            5,  # Rounded corners
-        )
-
-        # Draw text
-        painter.setPen(QPen(text_color))
-        # Vertically center text in the background rectangle
-        painter.drawText(x, y + text_height - font_metrics.descent(), fps_text)
-
-        painter.restore()
+            # Draw text
+            painter.setPen(QPen(text_color))
+            # Vertically center text in the background rectangle
+            painter.drawText(x, y + text_height - font_metrics.descent(), fps_text)
+        finally:
+            painter.restore()
 
     def _powerup_label(self, powerup):
         labels = {

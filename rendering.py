@@ -161,72 +161,71 @@ class Renderer:
             view_width, view_height: Dimensions of the view area
         """
         if not square.is_visible(camera_x, camera_y, view_width, view_height):
-            return  # Get screen position
+            return
         screen_x, screen_y = square.get_screen_position(
             camera_x, camera_y, view_width, view_height
         )
-
-        # Choose colors based on pulse state
-        if square.is_pulsing():
-            # Use lighter blue colors during pulse
-            outline_color = SQUARE_PULSE_COLOR
-            fill_color = SQUARE_PULSE_COLOR
-            # Make the pulse intensity fade over time
-            pulse_intensity = square.pulse_timer / SQUARE_PULSE_DURATION
-            # Interpolate between normal and pulse colors
-            normal_outline = QColor(*SQUARE_OUTLINE_COLOR)
-            pulse_outline = QColor(*SQUARE_PULSE_COLOR)
-            normal_fill = QColor(*SQUARE_COLOR)
-            pulse_fill = QColor(*SQUARE_PULSE_COLOR)
-
-            # Blend colors based on pulse intensity
-            outline_r = int(
-                normal_outline.red()
-                + (pulse_outline.red() - normal_outline.red()) * pulse_intensity
-            )
-            outline_g = int(
-                normal_outline.green()
-                + (pulse_outline.green() - normal_outline.green()) * pulse_intensity
-            )
-            outline_b = int(
-                normal_outline.blue()
-                + (pulse_outline.blue() - normal_outline.blue()) * pulse_intensity
-            )
-
-            fill_r = int(
-                normal_fill.red()
-                + (pulse_fill.red() - normal_fill.red()) * pulse_intensity
-            )
-            fill_g = int(
-                normal_fill.green()
-                + (pulse_fill.green() - normal_fill.green()) * pulse_intensity
-            )
-            fill_b = int(
-                normal_fill.blue()
-                + (pulse_fill.blue() - normal_fill.blue()) * pulse_intensity
-            )
-
-            painter.setPen(
-                QPen(QColor(outline_r, outline_g, outline_b), 3)
-            )  # Thicker border during pulse
-            painter.setBrush(QBrush(QColor(fill_r, fill_g, fill_b)))
-        else:
-            # Use normal colors
-            painter.setPen(QPen(QColor(*SQUARE_OUTLINE_COLOR), 2))
-            painter.setBrush(QBrush(QColor(*SQUARE_COLOR)))
-
-        # Save the current transformation state
         painter.save()
+        try:
+            # Choose colors based on pulse state
+            if square.is_pulsing():
+                # Use lighter blue colors during pulse
+                outline_color = SQUARE_PULSE_COLOR
+                fill_color = SQUARE_PULSE_COLOR
+                # Make the pulse intensity fade over time
+                pulse_intensity = square.pulse_timer / SQUARE_PULSE_DURATION
+                # Interpolate between normal and pulse colors
+                normal_outline = QColor(*SQUARE_OUTLINE_COLOR)
+                pulse_outline = QColor(*SQUARE_PULSE_COLOR)
+                normal_fill = QColor(*SQUARE_COLOR)
+                pulse_fill = QColor(*SQUARE_PULSE_COLOR)
 
-        # Translate to the square center for rotation
-        painter.translate(screen_x, screen_y)
+                # Blend colors based on pulse intensity
+                outline_r = int(
+                    normal_outline.red()
+                    + (pulse_outline.red() - normal_outline.red()) * pulse_intensity
+                )
+                outline_g = int(
+                    normal_outline.green()
+                    + (pulse_outline.green() - normal_outline.green()) * pulse_intensity
+                )
+                outline_b = int(
+                    normal_outline.blue()
+                    + (pulse_outline.blue() - normal_outline.blue()) * pulse_intensity
+                )
 
-        # Apply rotation
-        painter.rotate(math.degrees(square.angle))  # Convert radians to degrees for Qt
+                fill_r = int(
+                    normal_fill.red()
+                    + (pulse_fill.red() - normal_fill.red()) * pulse_intensity
+                )
+                fill_g = int(
+                    normal_fill.green()
+                    + (pulse_fill.green() - normal_fill.green()) * pulse_intensity
+                )
+                fill_b = int(
+                    normal_fill.blue()
+                    + (pulse_fill.blue() - normal_fill.blue()) * pulse_intensity
+                )
 
-        # Draw the SVG cube centered at origin (since we translated)
-        square.draw_svg(painter, 0, 0)
-        painter.restore()
+                painter.setPen(
+                    QPen(QColor(outline_r, outline_g, outline_b), 3)
+                )  # Thicker border during pulse
+                painter.setBrush(QBrush(QColor(fill_r, fill_g, fill_b)))
+            else:
+                # Use normal colors
+                painter.setPen(QPen(QColor(*SQUARE_OUTLINE_COLOR), 2))
+                painter.setBrush(QBrush(QColor(*SQUARE_COLOR)))
+
+            # Translate to the square center for rotation
+            painter.translate(screen_x, screen_y)
+            # Apply rotation
+            painter.rotate(
+                math.degrees(square.angle)
+            )  # Convert radians to degrees for Qt
+            # Draw the SVG cube centered at origin (since we translated)
+            square.draw_svg(painter, 0, 0)
+        finally:
+            painter.restore()
 
     @staticmethod
     def draw_red_dot(painter, dot, view_center_x, view_center_y):
@@ -245,15 +244,17 @@ class Renderer:
         if dot.is_pulsing():
             # Draw yellow pulse ellipse behind SVG for damage effect
             painter.save()
-            painter.setPen(QPen(QColor(*HP_DAMAGE_PULSE_COLOR), 0))
-            painter.setBrush(QBrush(QColor(*HP_DAMAGE_PULSE_COLOR)))
-            painter.drawEllipse(
-                int(screen_x - dot.radius),
-                int(screen_y - dot.radius),
-                dot.radius * 2,
-                dot.radius * 2,
-            )
-            painter.restore()
+            try:
+                painter.setPen(QPen(QColor(*HP_DAMAGE_PULSE_COLOR), 0))
+                painter.setBrush(QBrush(QColor(*HP_DAMAGE_PULSE_COLOR)))
+                painter.drawEllipse(
+                    int(screen_x - dot.radius),
+                    int(screen_y - dot.radius),
+                    dot.radius * 2,
+                    dot.radius * 2,
+                )
+            finally:
+                painter.restore()
         dot.draw_svg(painter, screen_x, screen_y)
 
         # Hide the momentum triangle for now
@@ -364,15 +365,17 @@ class Renderer:
             if dot.is_pulsing():
                 # Draw yellow pulse ellipse behind SVG for damage effect
                 painter.save()
-                painter.setPen(QPen(QColor(*HP_DAMAGE_PULSE_COLOR), 0))
-                painter.setBrush(QBrush(QColor(*HP_DAMAGE_PULSE_COLOR)))
-                painter.drawEllipse(
-                    int(screen_x - dot.radius),
-                    int(screen_y - dot.radius),
-                    dot.radius * 2,
-                    dot.radius * 2,
-                )
-                painter.restore()
+                try:
+                    painter.setPen(QPen(QColor(*HP_DAMAGE_PULSE_COLOR), 0))
+                    painter.setBrush(QBrush(QColor(*HP_DAMAGE_PULSE_COLOR)))
+                    painter.drawEllipse(
+                        int(screen_x - dot.radius),
+                        int(screen_y - dot.radius),
+                        dot.radius * 2,
+                        dot.radius * 2,
+                    )
+                finally:
+                    painter.restore()
             dot.draw_svg(painter, screen_x, screen_y)
             # Hide the momentum triangle for now
             # Hide the momentum triangle for now
@@ -440,15 +443,17 @@ class Renderer:
         if dot.is_pulsing():
             # Draw yellow pulse ellipse behind SVG for damage effect
             painter.save()
-            painter.setPen(QPen(QColor(*HP_DAMAGE_PULSE_COLOR), 0))
-            painter.setBrush(QBrush(QColor(*HP_DAMAGE_PULSE_COLOR)))
-            painter.drawEllipse(
-                int(screen_x - dot.radius),
-                int(screen_y - dot.radius),
-                dot.radius * 2,
-                dot.radius * 2,
-            )
-            painter.restore()
+            try:
+                painter.setPen(QPen(QColor(*HP_DAMAGE_PULSE_COLOR), 0))
+                painter.setBrush(QBrush(QColor(*HP_DAMAGE_PULSE_COLOR)))
+                painter.drawEllipse(
+                    int(screen_x - dot.radius),
+                    int(screen_y - dot.radius),
+                    dot.radius * 2,
+                    dot.radius * 2,
+                )
+            finally:
+                painter.restore()
         # Draw SVG ship, 50% larger (scaling handled in PurpleDot.draw_svg)
         dot.draw_svg(painter, screen_x, screen_y)
         # Hide the momentum triangle for now
@@ -480,15 +485,17 @@ class Renderer:
             # Draw SVG ship, pulsing overlays yellow if needed (match split-screen center logic)
             if dot.is_pulsing():
                 painter.save()
-                painter.setPen(QPen(QColor(*HP_DAMAGE_PULSE_COLOR), 0))
-                painter.setBrush(QBrush(QColor(*HP_DAMAGE_PULSE_COLOR)))
-                painter.drawEllipse(
-                    int(screen_x - dot.radius),
-                    int(screen_y - dot.radius),
-                    dot.radius * 2,
-                    dot.radius * 2,
-                )
-                painter.restore()
+                try:
+                    painter.setPen(QPen(QColor(*HP_DAMAGE_PULSE_COLOR), 0))
+                    painter.setBrush(QBrush(QColor(*HP_DAMAGE_PULSE_COLOR)))
+                    painter.drawEllipse(
+                        int(screen_x - dot.radius),
+                        int(screen_y - dot.radius),
+                        dot.radius * 2,
+                        dot.radius * 2,
+                    )
+                finally:
+                    painter.restore()
             dot.draw_svg(painter, screen_x, screen_y)
             # Hide the momentum triangle for now
 
@@ -711,15 +718,17 @@ class Renderer:
             circle.draw_svg(painter, screen_x, screen_y)
             # Draw white pulse overlay
             painter.save()
-            painter.setPen(QPen(QColor(255, 255, 255, white_alpha), 3))
-            painter.setBrush(QBrush(QColor(255, 255, 255, white_alpha)))
-            painter.drawEllipse(
-                int(screen_x - circle.radius),
-                int(screen_y - circle.radius),
-                int(circle.radius * 2),
-                int(circle.radius * 2),
-            )
-            painter.restore()
+            try:
+                painter.setPen(QPen(QColor(255, 255, 255, white_alpha), 3))
+                painter.setBrush(QBrush(QColor(255, 255, 255, white_alpha)))
+                painter.drawEllipse(
+                    int(screen_x - circle.radius),
+                    int(screen_y - circle.radius),
+                    int(circle.radius * 2),
+                    int(circle.radius * 2),
+                )
+            finally:
+                painter.restore()
         else:
             # Normal drawing without pulse
             circle.draw_svg(painter, screen_x, screen_y)
@@ -772,16 +781,20 @@ class Renderer:
         )
 
         # Set up pen and brush with transparency
-        painter.setPen(QPen(QColor(*GRAVITY_DOT_OUTLINE), 2))
-        painter.setBrush(QBrush(QColor(*GRAVITY_DOT_COLOR)))
+        painter.save()
+        try:
+            painter.setPen(QPen(QColor(*GRAVITY_DOT_OUTLINE), 2))
+            painter.setBrush(QBrush(QColor(*GRAVITY_DOT_COLOR)))
 
-        # Draw the gravitational dot
-        painter.drawEllipse(
-            int(screen_x - gravity_dot.radius),
-            int(screen_y - gravity_dot.radius),
-            int(gravity_dot.radius * 2),
-            int(gravity_dot.radius * 2),
-        )
+            # Draw the gravitational dot
+            painter.drawEllipse(
+                int(screen_x - gravity_dot.radius),
+                int(screen_y - gravity_dot.radius),
+                int(gravity_dot.radius * 2),
+                int(gravity_dot.radius * 2),
+            )
+        finally:
+            painter.restore()
 
     @staticmethod
     def draw_score(

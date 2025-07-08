@@ -75,21 +75,23 @@ class RedDot:
             ship_angle = self._last_angle
         rect = QRectF(-ship_size / 2, -ship_size / 2, ship_size, ship_size)
         painter.save()
-        painter.translate(screen_x, screen_y)
-        painter.rotate(ship_angle - 90)  # SVG points up, so 0 deg = up
-        # Flash yellow with a pulsing effect if pulsing (damage)
-        if self.is_pulsing():
-            pulse_phase = (
-                SQUARE_PULSE_DURATION - self.pulse_timer
-            ) / SQUARE_PULSE_DURATION
-            pulse = 0.5 * (1 + math.sin(pulse_phase * math.pi * 2))  # 0..1
-            alpha = int(100 + 100 * pulse)  # Range: 100..200
-            flash_color = QColor(255, 255, 100, alpha)
-            painter.setPen(Qt.PenStyle.NoPen)
-            painter.setBrush(flash_color)
-            painter.drawEllipse(rect)
-        self.svg_renderer.render(painter, rect)
-        painter.restore()
+        try:
+            painter.translate(screen_x, screen_y)
+            painter.rotate(ship_angle - 90)  # SVG points up, so 0 deg = up
+            # Flash yellow with a pulsing effect if pulsing (damage)
+            if self.is_pulsing():
+                pulse_phase = (
+                    SQUARE_PULSE_DURATION - self.pulse_timer
+                ) / SQUARE_PULSE_DURATION
+                pulse = 0.5 * (1 + math.sin(pulse_phase * math.pi * 2))  # 0..1
+                alpha = int(100 + 100 * pulse)  # Range: 100..200
+                flash_color = QColor(255, 255, 100, alpha)
+                painter.setPen(Qt.PenStyle.NoPen)
+                painter.setBrush(flash_color)
+                painter.drawEllipse(rect)
+            self.svg_renderer.render(painter, rect)
+        finally:
+            painter.restore()
 
     def update_physics(self):
         """Update velocity and position based on current acceleration."""
@@ -189,21 +191,23 @@ class BlueSquare:
         # Draw the SVG centered at (screen_x, screen_y), scaled to match the square size, and rotated
         rect = QRectF(-self.size / 2, -self.size / 2, self.size, self.size)
         painter.save()
-        painter.translate(screen_x, screen_y)
-        painter.rotate(math.degrees(self.angle))
-        # Flash light blue with a pulsing effect if pulsing (collision)
-        if self.is_pulsing():
-            pulse_phase = (
-                SQUARE_PULSE_DURATION - self.pulse_timer
-            ) / SQUARE_PULSE_DURATION
-            pulse = 0.5 * (1 + math.sin(pulse_phase * math.pi * 2))  # 0..1
-            alpha = int(80 + 100 * pulse)  # Range: 80..180
-            flash_color = QColor(120, 200, 255, alpha)
-            painter.setPen(Qt.PenStyle.NoPen)
-            painter.setBrush(flash_color)
-            painter.drawRect(rect)
-        self.svg_renderer.render(painter, rect)
-        painter.restore()
+        try:
+            painter.translate(screen_x, screen_y)
+            painter.rotate(math.degrees(self.angle))
+            # Flash light blue with a pulsing effect if pulsing (collision)
+            if self.is_pulsing():
+                pulse_phase = (
+                    SQUARE_PULSE_DURATION - self.pulse_timer
+                ) / SQUARE_PULSE_DURATION
+                pulse = 0.5 * (1 + math.sin(pulse_phase * math.pi * 2))  # 0..1
+                alpha = int(80 + 100 * pulse)  # Range: 80..180
+                flash_color = QColor(120, 200, 255, alpha)
+                painter.setPen(Qt.PenStyle.NoPen)
+                painter.setBrush(flash_color)
+                painter.drawRect(rect)
+            self.svg_renderer.render(painter, rect)
+        finally:
+            painter.restore()
 
     """Represents the blue square obstacle with physics."""
 
@@ -408,9 +412,11 @@ class Projectile:
         size = self.radius * 2 * 3.0  # 300% increase
         rect = QRectF(-size / 2, -size / 2, size, size)
         painter.save()
-        painter.translate(screen_x, screen_y)
-        self.svg_renderer.render(painter, rect)
-        painter.restore()
+        try:
+            painter.translate(screen_x, screen_y)
+            self.svg_renderer.render(painter, rect)
+        finally:
+            painter.restore()
 
     """Represents a green projectile shot by a player."""
 
@@ -684,21 +690,23 @@ class PurpleDot(RedDot):
             ship_angle = self._last_angle
         rect = QRectF(-ship_size / 2, -ship_size / 2, ship_size, ship_size)
         painter.save()
-        painter.translate(screen_x, screen_y)
-        painter.rotate(ship_angle - 90)  # SVG points up, so 0 deg = up
-        # Flash yellow with a pulsing effect if pulsing (damage)
-        if self.is_pulsing():
-            pulse_phase = (
-                SQUARE_PULSE_DURATION - self.pulse_timer
-            ) / SQUARE_PULSE_DURATION
-            pulse = 0.5 * (1 + math.sin(pulse_phase * math.pi * 2))  # 0..1
-            alpha = int(100 + 100 * pulse)  # Range: 100..200
-            flash_color = QColor(255, 255, 100, alpha)
-            painter.setPen(Qt.PenStyle.NoPen)
-            painter.setBrush(flash_color)
-            painter.drawEllipse(rect)
-        self.svg_renderer.render(painter, rect)
-        painter.restore()
+        try:
+            painter.translate(screen_x, screen_y)
+            painter.rotate(ship_angle - 90)  # SVG points up, so 0 deg = up
+            # Flash yellow with a pulsing effect if pulsing (damage)
+            if self.is_pulsing():
+                pulse_phase = (
+                    SQUARE_PULSE_DURATION - self.pulse_timer
+                ) / SQUARE_PULSE_DURATION
+                pulse = 0.5 * (1 + math.sin(pulse_phase * math.pi * 2))  # 0..1
+                alpha = int(100 + 100 * pulse)  # Range: 100..200
+                flash_color = QColor(255, 255, 100, alpha)
+                painter.setPen(Qt.PenStyle.NoPen)
+                painter.setBrush(flash_color)
+                painter.drawEllipse(rect)
+            self.svg_renderer.render(painter, rect)
+        finally:
+            painter.restore()
 
     def get_color(self):
         """Return the purple color for this dot."""
@@ -793,9 +801,11 @@ class StaticRedCircle(StaticCircle):
         r = self.radius if size is None else size / 2
         rect = QRectF(-r, -r, r * 2, r * 2)
         painter.save()
-        painter.translate(screen_x, screen_y)
-        self.svg_renderer.render(painter, rect)
-        painter.restore()
+        try:
+            painter.translate(screen_x, screen_y)
+            self.svg_renderer.render(painter, rect)
+        finally:
+            painter.restore()
 
 
 class StaticPurpleCircle(StaticCircle):
@@ -815,9 +825,11 @@ class StaticPurpleCircle(StaticCircle):
         r = self.radius if size is None else size / 2
         rect = QRectF(-r, -r, r * 2, r * 2)
         painter.save()
-        painter.translate(screen_x, screen_y)
-        self.svg_renderer.render(painter, rect)
-        painter.restore()
+        try:
+            painter.translate(screen_x, screen_y)
+            self.svg_renderer.render(painter, rect)
+        finally:
+            painter.restore()
 
 
 class GravitationalDot:
