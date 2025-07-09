@@ -79,6 +79,7 @@ class PowerupSelectionView(QWidget):
         from config import (
             GAMEPAD_ENABLED,
             GAMEPAD_1_INDEX,
+            GAMEPAD_2_INDEX,
             GAMEPAD_1_SHOOT_BUTTON,
             GAMEPAD_DEADZONE,
         )
@@ -98,9 +99,19 @@ class PowerupSelectionView(QWidget):
             parent = getattr(parent, "parent", lambda: None)()
         if not gamepad_manager:
             return
-        if not gamepad_manager.is_gamepad_connected(GAMEPAD_1_INDEX):
+
+        # Determine which gamepad index to check based on the losing player
+        if self.loser_player == 1:
+            gamepad_index = GAMEPAD_1_INDEX
+        elif self.loser_player == 2:
+            gamepad_index = GAMEPAD_2_INDEX
+        else:
+            # Fallback to player 1's controller if loser_player is not set
+            gamepad_index = GAMEPAD_1_INDEX
+
+        if not gamepad_manager.is_gamepad_connected(gamepad_index):
             return
-        state = gamepad_manager.get_gamepad_input(GAMEPAD_1_INDEX)
+        state = gamepad_manager.get_gamepad_input(gamepad_index)
         x = state.get("left_stick_x", 0.0)
         a = bool(state.get("shoot_button", False))
         # Navigation cooldown logic
@@ -356,6 +367,9 @@ class PowerupSelectionView(QWidget):
         """Handle keyboard navigation."""
         key = event.key()
 
+        # Allow both players to use their respective controls
+        # Player 1 (Red): Arrow keys + Enter
+        # Player 2 (Purple): WASD + Left Ctrl/Space
         if key in [Qt.Key.Key_Left, Qt.Key.Key_A]:
             # Move selection left
             self.selected_index = (self.selected_index - 1) % len(self.powerup_options)
@@ -364,8 +378,8 @@ class PowerupSelectionView(QWidget):
             # Move selection right
             self.selected_index = (self.selected_index + 1) % len(self.powerup_options)
             self.update()
-        elif key in [Qt.Key.Key_Return, Qt.Key.Key_Space]:
-            # Select current powerup
+        elif key in [Qt.Key.Key_Return, Qt.Key.Key_Space, Qt.Key.Key_Control]:
+            # Select current powerup (Enter for Player 1, Space/Ctrl for Player 2)
             if 0 <= self.selected_index < len(self.powerup_options):
                 powerup_key = self.powerup_options[self.selected_index][0]
                 self.powerup_selected.emit(powerup_key, False)  # False = don't reset
