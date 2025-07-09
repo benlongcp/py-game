@@ -5,6 +5,7 @@ Creates a shared game engine and split-screen multi-player setup.
 
 import sys
 import math
+import pygame  # For sound effects
 from PyQt6.QtWidgets import QApplication, QWidget
 from PyQt6.QtCore import QTimer, Qt
 from PyQt6.QtGui import QPainter, QFont, QColor, QRadialGradient, QBrush, QPen
@@ -27,6 +28,31 @@ class LaunchScreen(QWidget):
         self.setWindowTitle("HULL BALL")
         self.setFixedSize(1200, 800)
         self.setStyleSheet("background-color: black;")
+
+        # Initialize pygame mixer for sound effects (only once, at app start)
+        if not pygame.mixer.get_init():
+            pygame.mixer.init()
+
+        # Preload global sound effects
+        try:
+            self.sfx_enemyalert = pygame.mixer.Sound("sounds/enemyalert.wav")
+        except Exception:
+            self.sfx_enemyalert = None
+        try:
+            self.sfx_landhit = pygame.mixer.Sound("sounds/landhit.wav")
+        except Exception:
+            self.sfx_landhit = None
+        try:
+            self.sfx_toggleswitch = pygame.mixer.Sound("sounds/toggleswitch.wav")
+        except Exception:
+            self.sfx_toggleswitch = None
+
+        # Provide access to SFX for other modules
+        import builtins
+
+        builtins.SFX_ENEMYALERT = self.sfx_enemyalert
+        builtins.SFX_LANDHIT = self.sfx_landhit
+        builtins.SFX_TOGGLESWITCH = self.sfx_toggleswitch
 
         # Set up SVG renderers
         self.red_ship_renderer = QSvgRenderer(QByteArray(SVG_RED_SHIP.encode("utf-8")))

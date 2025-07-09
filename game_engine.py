@@ -681,6 +681,14 @@ class GameEngine:
             new_projectile.damage = self.get_player1_projectile_damage()
             new_projectile.mass = self.get_player1_projectile_mass()
             self.projectiles.append(new_projectile)
+        # Play projectile fire sound effect
+        try:
+            import builtins
+
+            if hasattr(builtins, "SFX_LANDHIT") and builtins.SFX_LANDHIT:
+                builtins.SFX_LANDHIT.play()
+        except Exception:
+            pass
         self.player1_rate_limiter.record_shot()
 
     def shoot_projectile_player2(self):
@@ -744,6 +752,14 @@ class GameEngine:
             new_projectile.damage = self.get_player2_projectile_damage()
             new_projectile.mass = self.get_player2_projectile_mass()
             self.projectiles.append(new_projectile)
+        # Play projectile fire sound effect
+        try:
+            import builtins
+
+            if hasattr(builtins, "SFX_LANDHIT") and builtins.SFX_LANDHIT:
+                builtins.SFX_LANDHIT.play()
+        except Exception:
+            pass
         self.player2_rate_limiter.record_shot()
 
     def set_player1_key(self, key, pressed):
@@ -910,6 +926,14 @@ class GameEngine:
             self._respawn_blue_square()
             self.projectiles.clear()  # Remove all projectiles after a goal
             self.red_circle_overlap_timer = 0
+            # Play goal scored sound effect
+            try:
+                import builtins
+
+                if hasattr(builtins, "SFX_ENEMYALERT") and builtins.SFX_ENEMYALERT:
+                    builtins.SFX_ENEMYALERT.play()
+            except Exception:
+                pass
             # print(
             #     f"Red player scores 2 points for a goal! Total: {self.red_player_score}")
 
@@ -919,6 +943,14 @@ class GameEngine:
             self._respawn_blue_square()
             self.projectiles.clear()  # Remove all projectiles after a goal
             self.purple_circle_overlap_timer = 0
+            # Play goal scored sound effect
+            try:
+                import builtins
+
+                if hasattr(builtins, "SFX_ENEMYALERT") and builtins.SFX_ENEMYALERT:
+                    builtins.SFX_ENEMYALERT.play()
+            except Exception:
+                pass
             # print(
             #     f"Purple player scores 2 points for a goal! Total: {self.purple_player_score}")
 

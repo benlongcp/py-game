@@ -85,6 +85,15 @@ class SplitScreenView(QWidget):
                 # print(f"[DEBUG] Assigning powerup to Player 2: {powerup_key}")
                 self.game_engine.player2_powerups.append(powerup_key)
 
+            # Play powerup selection sound effect
+            try:
+                import builtins
+
+                if hasattr(builtins, "SFX_TOGGLESWITCH") and builtins.SFX_TOGGLESWITCH:
+                    builtins.SFX_TOGGLESWITCH.play()
+            except Exception:
+                pass
+
             # Continue the game
             self._continue_game()
 
