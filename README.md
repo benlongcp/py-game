@@ -1,103 +1,147 @@
-# Topographical Plane Application
 
-A PyQt6-based interactive simulation featuring a red dot that moves on a triangular grid with physics-based collision detection against a blue square obstacle.
+# HOLE BALL: Topographical Plane Physics Game
 
-## Architecture
+An advanced PyQt6-based multi-player physics sandbox featuring split-screen play, black holes with massive gravitational fields, dynamic projectiles, and visually rich effects. Designed for both competitive and cooperative play, with robust modular architecture and extensive test coverage.
 
-The application has been modularized into the following components:
+---
 
-### Core Modules
+## 🚀 Quick Start
 
-- **`main.py`** - Application entry point
-- **`topographical_plane.py`** - Main widget class that orchestrates the simulation
-- **`config.py`** - All configuration constants and settings
-- **`objects.py`** - Game object classes (RedDot, BlueSquare)
-- **`physics.py`** - Physics calculations and collision detection
-- **`rendering.py`** - All drawing/rendering operations
+1. **Install Python 3.10+** (recommended: 3.11+)
+2. **Install dependencies:**
+   ```bash
+   pip install PyQt6
+   ```
+3. **Run the game:**
+   ```bash
+   python main.py
+   ```
 
-### Testing & Debug
+---
 
-- **`tests/`** - **⚠️ ALL test, debug, and demo scripts MUST go here ⚠️**
-  - Contains all `test_*.py`, `debug_*.py`, and `demo_*.py` files
-  - Includes experimental and prototype scripts
-  - **NO test/debug/demo files should EVER be in the main directory**
-  - See `tests/ORGANIZATION_GUIDELINES.md` for detailed rules
-  - Use `python tests/check_organization.py` to verify compliance
-  - Use `python check_org.py` for quick organization checks
+## 🕹️ Controls
 
-### Legacy Files
+**Player 1 (Red Dot Window):**
+- Move: Arrow Keys (↑↓←→)
+- Shoot: Enter
 
-- **`py-widget.py`** - Original monolithic implementation (kept for reference)
+**Player 2 (Purple Dot Window):**
+- Move: WASD
+- Shoot: Left Ctrl
 
-## Features
+**Gamepad support:** Both Xbox and compatible controllers supported (see config.py for mappings).
 
-- **Smooth movement**: Red dot moves with momentum-based physics
-- **Collision detection**: Realistic collision between red dot and blue square
-- **Boundary constraints**: Both objects respect circular grid boundaries
-- **Visual feedback**: Momentum indicator shows direction and speed
-- **Camera system**: View follows the red dot with coordinate transformation
-- **Triangular grid**: Procedurally generated dot pattern with vignette effect
-- **Multi-player support**: Two players can play simultaneously with split-screen view
-- **Projectile system**: Players can shoot projectiles that interact with all objects
-- **Off-screen indicators**: Blue arrows point toward the blue square when it's outside view
-- **Newtonian physics**: All interactions follow conservation of momentum
-- **Static decorative circles**: Red and purple circles positioned on opposite ends of the grid
-- **Gravitational physics**: Blue square gets pulled toward gravitational dots when overlapping static circles
-- **FPS Counter**: Real-time frame rate display at bottom of window for performance monitoring
-- **Dynamic Scaling**: Fully resizable window with automatic content scaling
+---
 
-## Usage
+## 🎮 Gameplay Overview
 
-### Single Player Mode
-Run the application using:
+- **Split-Screen Multiplayer:** Each player has their own camera and window.
+- **Black Holes:** Massive, pulsing gravity fields dominate the arena. Objects are pulled with constant force within the field.
+- **Projectiles:** Both players can shoot; projectiles interact with all objects and are affected by gravity.
+- **Blue Square:** Central object with rotational physics and collision effects.
+- **Decorative Circles:** Red and purple static circles act as scoring zones.
+- **Dynamic Grid & Vignette:** Triangular grid and edge-fade for visual depth.
+- **Pulse & Momentum Effects:** Visual feedback for movement, collisions, and gravity.
+
+---
+
+## 🏗️ Program Flow
+
+1. **Launch Screen:**
+   - Displays "HOLE BALL" title, SVG ships/cubes, and instructions.
+   - Any key, mouse, or gamepad input starts the game.
+2. **Game Initialization:**
+   - Loads configuration and sets up all objects (players, black holes, blue square, static circles).
+   - Initializes physics engine and rendering system.
+3. **Main Game Loop:**
+   - Each player window updates independently but shares the same game state.
+   - Handles input, updates physics, processes collisions, and applies gravity.
+   - Renders all objects, effects, and overlays (FPS, momentum, pulses, etc.).
+4. **Gameplay:**
+   - Players move, shoot, and interact with all arena objects.
+   - Black holes exert constant gravitational pull within their massive fields.
+   - Scoring, hit points, and visual feedback update in real time.
+5. **Testing & Debugging:**
+   - All test/demo scripts are in `tests/` and can be run independently.
+
+---
+
+## 🛠️ Features & Enhancements
+
+- **Black Hole Enhancements:**
+  - Gravitational field radius increased to 18x (675 units, 36x area).
+  - Constant gravitational pull within field (no distance falloff).
+  - Pulsing gray overlay for visual feedback (smooth sine wave, 0.5s cycle).
+- **Launch Screen:**
+  - Animated, SVG-based, with instant input detection.
+- **Multi-Player System:**
+  - Dual windows, independent cameras, synchronized physics.
+- **Physics:**
+  - Newtonian collisions, rotational inertia, momentum conservation.
+- **Visuals:**
+  - Triangular grid, vignette, momentum indicators, pulse effects, off-screen arrows.
+- **Performance:**
+  - Resolution capping, efficient rendering, 60 FPS target.
+- **Testing:**
+  - 40+ test/demo scripts in `tests/` for every feature and bugfix.
+
+---
+
+## 🗂️ File/Folder Structure
+
+- `main.py` — Entry point, game/launch screen logic
+- `split_screen.py` — Multi-window management
+- `objects.py` — All game object classes (players, black holes, projectiles, etc.)
+- `physics.py` — Physics and collision logic
+- `rendering.py` — All drawing and visual effects
+- `config.py` — All game constants and settings
+- `tests/` — All test, debug, and demo scripts (see below)
+- `README.md` — This file
+
+---
+
+## 🧪 Testing & Debugging
+
+All test, debug, and demo scripts are in the `tests/` folder. Example usage:
+
 ```bash
-python main.py
-```
+# Run a test
+python tests/test_black_hole.py
 
-### Multi-Player Split-Screen Mode
-For two-player split-screen mode, see `MULTIPLAYER_README.md` for detailed instructions.
-
-### Demo and Testing
-
-**⚠️ IMPORTANT: All test, debug, and demo scripts MUST be placed in the `tests/` folder**
-
-```bash
-# Test dynamic scaling functionality
-python tests/test_dynamic_scaling.py
-
-# Demo the resizable window features
+# Demo dynamic scaling
 python tests/demo_dynamic_scaling.py
 
-# Test and demo FPS counter
-python tests/test_fps_counter.py
-python tests/demo_fps_counter.py
-
-# Test gamepad functionality
-python tests/test_gamepad_detection.py
-
-# Verify project organization
+# Check project organization
 python tests/check_organization.py
-
-# Run any other test
-python tests/test_name.py
 ```
 
-### Controls
+---
 
-**Single Player Mode:**
-- **Arrow Keys**: Move the red dot
-- **Enter**: Shoot projectiles
+## 🖥️ Installation & Setup (New System)
 
-**Multi-Player Mode (Split-Screen):**
-- **Player 1 (Red)**: Arrow Keys + Enter
-- **Player 2 (Purple)**: WASD + Ctrl
+1. **Install Python 3.10+** (https://www.python.org/downloads/)
+2. **Install PyQt6:**
+   ```bash
+   pip install PyQt6
+   ```
+3. **(Optional) Gamepad Support:**
+   - For advanced gamepad features, install `inputs` or `pygame` as needed.
+4. **Run the game:**
+   ```bash
+   python main.py
+   ```
 
-### Movement Physics
-- Acceleration while keys are held
-- Momentum continues when keys are released
-- Deceleration brings dot to stop over ~10 seconds
+---
 
-### FPS Counter
+## ℹ️ Notes & Credits
+
+- Designed and developed by Ben Long
+- For bug reports, feature requests, or contributions, open an issue or pull request.
+- Special thanks to all testers and contributors!
+
+---
+
+Enjoy HOLE BALL — the ultimate topographical physics arena!
 - Real-time frame rate display at the bottom center of the window
 - Updates every second showing current performance
 - Semi-transparent background for easy reading
