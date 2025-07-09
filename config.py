@@ -11,13 +11,19 @@ WINDOW_CENTER_Y = 400
 FPS = 60  # Target frames per second
 FRAME_TIME_MS = 16  # Milliseconds per frame (1000/60 ≈ 16)
 
+# Resolution capping settings
+ENABLE_RESOLUTION_CAP = True  # Enable/disable resolution capping for performance
+MAX_RENDER_WIDTH = 1080  # Maximum render width per player view
+MAX_RENDER_HEIGHT = 1080  # Maximum render height per player view
+# Note: Game will render at capped resolution and scale to fit actual window size
+
 # FPS Counter settings
 SHOW_FPS_COUNTER = True  # Enable/disable FPS counter overlay
 FPS_COUNTER_COLOR = (255, 255, 255)  # White text
 FPS_COUNTER_BACKGROUND = (0, 0, 0, 150)  # Semi-transparent black background
 
 # Grid settings
-GRID_SPACING = 30
+GRID_SPACING = 50
 GRID_DOT_RADIUS = 1
 GRID_RADIUS_X = 1500  # Horizontal radius (major axis) - increased 50% from 1000
 GRID_RADIUS_Y = (

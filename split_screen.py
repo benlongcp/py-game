@@ -289,185 +289,220 @@ class SplitScreenView(QWidget):
         height,
         overlay_color=None,
     ):
-        """Draw a single player's view."""
-        # Set clipping rectangle for this view
-        painter.save()
-        try:
-            painter.setClipRect(x_offset, y_offset, width, height)
+        """Draw a single player's view, with optional resolution capping and scaling."""
+        from config import ENABLE_RESOLUTION_CAP, MAX_RENDER_WIDTH, MAX_RENDER_HEIGHT
+        from PyQt6.QtGui import QPixmap
 
-            # Calculate view center for this player's view
-            view_center_x = width / 2
-            view_center_y = height / 2
-            view_width = width
-            view_height = height
-            view_height = height
+        # Determine render target size
+        render_width = min(width, MAX_RENDER_WIDTH) if ENABLE_RESOLUTION_CAP else width
+        render_height = (
+            min(height, MAX_RENDER_HEIGHT) if ENABLE_RESOLUTION_CAP else height
+        )
 
-            # Get camera position and following_dot based on which player this view is following
-            if player_number == 1:
+        # Create offscreen pixmap for capped rendering
+        render_pixmap = QPixmap(render_width, render_height)
+        render_pixmap.fill(QColor(0, 0, 0))
+        render_painter = QPainter(render_pixmap)
+        render_painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+        # Calculate view center for this player's view (in render target coordinates)
+        view_center_x = render_width / 2
+        view_center_y = render_height / 2
+        view_width = render_width
+        view_height = render_height
+
+        # Get camera position and following_dot based on which player this view is following
+        if player_number == 1:
+            camera_x = self.game_engine.red_dot.virtual_x
+            camera_y = self.game_engine.red_dot.virtual_y
+            following_dot = self.game_engine.red_dot
+        else:
+            if self.game_engine.purple_dot is not None:
+                camera_x = self.game_engine.purple_dot.virtual_x
+                camera_y = self.game_engine.purple_dot.virtual_y
+                following_dot = self.game_engine.purple_dot
+            else:
                 camera_x = self.game_engine.red_dot.virtual_x
                 camera_y = self.game_engine.red_dot.virtual_y
                 following_dot = self.game_engine.red_dot
+
+        # --- Grid Caching (per render size) ---
+        grid_spacing = Renderer.get_adaptive_grid_spacing(view_width, view_height)
+        cache_idx = 0 if player_number == 2 else 1
+        cache_params = (camera_x, camera_y, render_width, render_height, grid_spacing)
+        cache = self._grid_cache[cache_idx]
+        params = self._grid_cache_params[cache_idx]
+        needs_redraw = cache is None or params is None or params != cache_params
+        if needs_redraw:
+            grid_pixmap = QPixmap(render_width, render_height)
+            grid_pixmap.fill(QColor(0, 0, 0))
+            grid_painter = QPainter(grid_pixmap)
+            Renderer.draw_triangular_grid(
+                grid_painter, camera_x, camera_y, view_center_x, view_center_y
+            )
+            grid_painter.end()
+            self._grid_cache[cache_idx] = grid_pixmap
+            self._grid_cache_params[cache_idx] = cache_params
+        render_painter.drawPixmap(0, 0, self._grid_cache[cache_idx])
+        # --- End Grid Caching ---
+
+        # Draw vignette and all other elements as before (no change)
+        Renderer.draw_vignette_gradient(
+            render_painter, camera_x, camera_y, view_center_x, view_center_y
+        )
+        Renderer.draw_static_circles(
+            render_painter,
+            camera_x,
+            camera_y,
+            render_width,
+            render_height,
+            self.game_engine,
+        )
+        Renderer.draw_gravitational_dots(
+            render_painter, camera_x, camera_y, render_width, render_height
+        )
+
+        # Draw the black hole
+        Renderer.draw_black_hole(
+            render_painter,
+            self.game_engine.black_hole,
+            camera_x,
+            camera_y,
+            render_width,
+            render_height,
+        )
+
+        Renderer.draw_blue_square(
+            render_painter,
+            self.game_engine.blue_square,
+            camera_x,
+            camera_y,
+            render_width,
+            render_height,
+        )
+        Renderer.draw_projectiles(
+            render_painter,
+            self.game_engine.projectiles,
+            camera_x,
+            camera_y,
+            render_width,
+            render_height,
+        )
+
+        # Draw the dot this view is following at center
+        if player_number == 1:
+            Renderer.draw_red_dot(
+                render_painter, self.game_engine.red_dot, view_center_x, view_center_y
+            )
+        else:
+            Renderer.draw_purple_dot_centered(
+                render_painter,
+                self.game_engine.purple_dot,
+                view_center_x,
+                view_center_y,
+            )
+
+        # Draw the other player's dot in world coordinates if it exists
+        if player_number == 1 and self.game_engine.purple_dot is not None:
+            Renderer.draw_purple_dot(
+                render_painter,
+                self.game_engine.purple_dot,
+                camera_x,
+                camera_y,
+                view_center_x,
+                view_center_y,
+            )
+        elif player_number == 2:
+            Renderer.draw_red_dot_world(
+                render_painter,
+                self.game_engine.red_dot,
+                camera_x,
+                camera_y,
+                view_center_x,
+                view_center_y,
+            )
+
+        # Draw off-screen indicator for blue square if it's not visible
+        Renderer.draw_off_screen_indicator(
+            render_painter,
+            self.game_engine.blue_square,
+            camera_x,
+            camera_y,
+            render_width,
+            render_height,
+        )
+
+        # Draw player labels
+        render_painter.setPen(QPen(QColor(0, 0, 0), 2))
+        if player_number == 1:
+            if GAMEPAD_ENABLED and self.gamepad_manager.is_gamepad_connected(
+                GAMEPAD_1_INDEX
+            ):
+                render_painter.drawText(10, 25, "Player 1 (Red) - Gamepad 1")
             else:
-                if self.game_engine.purple_dot is not None:
-                    camera_x = self.game_engine.purple_dot.virtual_x
-                    camera_y = self.game_engine.purple_dot.virtual_y
-                    following_dot = self.game_engine.purple_dot
-                else:
-                    camera_x = self.game_engine.red_dot.virtual_x
-                    camera_y = self.game_engine.red_dot.virtual_y
-                    following_dot = self.game_engine.red_dot
-
-            # --- Grid Caching ---
-            # Always check and update the grid cache for each player view
-            grid_spacing = Renderer.get_adaptive_grid_spacing(view_width, view_height)
-            cache_idx = 0 if player_number == 2 else 1
-            cache_params = (camera_x, camera_y, width, height, grid_spacing)
-            cache = self._grid_cache[cache_idx]
-            params = self._grid_cache_params[cache_idx]
-            needs_redraw = cache is None or params is None or params != cache_params
-            if needs_redraw:
-                # print(f"Redrawing grid for player {player_number} (cache_idx={cache_idx})")
-                grid_pixmap = QPixmap(width, height)
-                grid_pixmap.fill(QColor(0, 0, 0))  # Fill with black
-                grid_painter = QPainter(grid_pixmap)
-                Renderer.draw_triangular_grid(
-                    grid_painter, camera_x, camera_y, view_center_x, view_center_y
-                )
-                grid_painter.end()
-                self._grid_cache[cache_idx] = grid_pixmap
-                self._grid_cache_params[cache_idx] = cache_params
-            # Translate painter to the view's coordinate system
-            painter.translate(x_offset, y_offset)
-            # Blit grid pixmap at (0,0) in local view coordinates
-            painter.drawPixmap(0, 0, self._grid_cache[cache_idx])
-            # --- End Grid Caching ---
-
-            # Draw vignette and all other elements as before (no change)
-            Renderer.draw_vignette_gradient(
-                painter, camera_x, camera_y, view_center_x, view_center_y
-            )
-            Renderer.draw_static_circles(
-                painter, camera_x, camera_y, width, height, self.game_engine
-            )
-            Renderer.draw_gravitational_dots(painter, camera_x, camera_y, width, height)
-
-            # Draw the black hole
-            Renderer.draw_black_hole(
-                painter, self.game_engine.black_hole, camera_x, camera_y, width, height
-            )
-
-            Renderer.draw_blue_square(
-                painter, self.game_engine.blue_square, camera_x, camera_y, width, height
-            )
-            Renderer.draw_projectiles(
-                painter, self.game_engine.projectiles, camera_x, camera_y, width, height
-            )
-
-            # Draw the dot this view is following at center
-            if player_number == 1:
-                Renderer.draw_red_dot(
-                    painter, self.game_engine.red_dot, view_center_x, view_center_y
-                )
+                render_painter.drawText(10, 25, "Player 1 (Red) - Arrow Keys + Enter")
+        else:
+            if GAMEPAD_ENABLED and self.gamepad_manager.is_gamepad_connected(
+                GAMEPAD_2_INDEX
+            ):
+                render_painter.drawText(10, 25, "Player 2 (Purple) - Gamepad 2")
             else:
-                # For player 2 view, draw purple ship SVG at center (not dot)
-                Renderer.draw_purple_dot_centered(
-                    painter, self.game_engine.purple_dot, view_center_x, view_center_y
-                )
+                render_painter.drawText(10, 25, "Player 2 (Purple) - WASD + Ctrl")
 
-            # Draw the other player's dot in world coordinates if it exists
-            if player_number == 1 and self.game_engine.purple_dot is not None:
-                Renderer.draw_purple_dot(
-                    painter,
-                    self.game_engine.purple_dot,
-                    camera_x,
-                    camera_y,
-                    view_center_x,
-                    view_center_y,
-                )
-            elif player_number == 2:
-                # Draw red dot in world coordinates when viewing from purple dot
-                Renderer.draw_red_dot_world(
-                    painter,
-                    self.game_engine.red_dot,
-                    camera_x,
-                    camera_y,
-                    view_center_x,
-                    view_center_y,
-                )
+        # Draw status display (score, hit points, and rate limiters)
+        red_score = self.game_engine.get_red_player_score()
+        purple_score = self.game_engine.get_purple_player_score()
+        red_hp = self.game_engine.get_red_player_hp()
+        purple_hp = self.game_engine.get_purple_player_hp()
 
-            # Draw off-screen indicator for blue square if it's not visible
-            Renderer.draw_off_screen_indicator(
-                painter, self.game_engine.blue_square, camera_x, camera_y, width, height
+        player1_rate_data = self.game_engine.get_player1_rate_limiter_progress()
+        player2_rate_data = self.game_engine.get_player2_rate_limiter_progress()
+
+        POWERUP_MARGIN = 24
+        status_block_y = 50
+        powerup_column_y = status_block_y + 60 + POWERUP_MARGIN
+        if player_number == 1:
+            StatusDisplay.draw_player_status(
+                render_painter,
+                10,
+                status_block_y,
+                "Player 1",
+                red_hp,
+                red_score,
+                player1_rate_data,
+                self.points_to_win,
+            )
+            self._draw_powerup_status_column(
+                render_painter, player_number, 10, powerup_column_y
+            )
+        else:
+            StatusDisplay.draw_player_status(
+                render_painter,
+                10,
+                status_block_y,
+                "Player 2",
+                purple_hp,
+                purple_score,
+                player2_rate_data,
+                self.points_to_win,
+            )
+            self._draw_powerup_status_column(
+                render_painter, player_number, 10, powerup_column_y
             )
 
-            # Draw player labels
-            painter.setPen(QPen(QColor(0, 0, 0), 2))
-            if player_number == 1:
-                if GAMEPAD_ENABLED and self.gamepad_manager.is_gamepad_connected(
-                    GAMEPAD_1_INDEX
-                ):
-                    painter.drawText(10, 25, "Player 1 (Red) - Gamepad 1")
-                else:
-                    painter.drawText(10, 25, "Player 1 (Red) - Arrow Keys + Enter")
-            else:
-                if GAMEPAD_ENABLED and self.gamepad_manager.is_gamepad_connected(
-                    GAMEPAD_2_INDEX
-                ):
-                    painter.drawText(10, 25, "Player 2 (Purple) - Gamepad 2")
-                else:
-                    painter.drawText(10, 25, "Player 2 (Purple) - WASD + Ctrl")
+        # Draw overlay color if needed (score pulse/flash)
+        if overlay_color:
+            render_painter.setPen(QPen(overlay_color, 0))
+            render_painter.setBrush(QBrush(overlay_color))
+            render_painter.drawRect(0, 0, render_width, render_height)
 
-            # Draw status display (score, hit points, and rate limiters)
-            red_score = self.game_engine.get_red_player_score()
-            purple_score = self.game_engine.get_purple_player_score()
-            red_hp = self.game_engine.get_red_player_hp()
-            purple_hp = self.game_engine.get_purple_player_hp()
+        render_painter.end()
 
-            # Get rate limiter progress for both players
-            player1_rate_data = self.game_engine.get_player1_rate_limiter_progress()
-            player2_rate_data = self.game_engine.get_player2_rate_limiter_progress()
-
-            # Draw status display - each player sees only their own info
-            # Draw status display - each player sees only their own info
-            # Add extra margin below the status block before powerup column
-            POWERUP_MARGIN = 24  # Increased vertical margin (was 0)
-            status_block_y = 50
-            # The StatusDisplay likely draws at y=50 and is about 50-60px tall, so add extra margin
-            powerup_column_y = status_block_y + 60 + POWERUP_MARGIN
-            if player_number == 1:
-                # Player 1 view - show only Player 1 status
-                StatusDisplay.draw_player_status(
-                    painter,
-                    10,
-                    status_block_y,
-                    "Player 1",
-                    red_hp,
-                    red_score,
-                    player1_rate_data,
-                    self.points_to_win,
-                )
-                # Draw Player 1 powerup status text under status column
-                self._draw_powerup_status_column(
-                    painter, player_number, 10, powerup_column_y
-                )
-            else:
-                # Player 2 view - show only Player 2 status
-                StatusDisplay.draw_player_status(
-                    painter,
-                    10,
-                    status_block_y,
-                    "Player 2",
-                    purple_hp,
-                    purple_score,
-                    player2_rate_data,
-                    self.points_to_win,
-                )
-                # Draw Player 2 powerup status text under status column
-                self._draw_powerup_status_column(
-                    painter, player_number, 10, powerup_column_y
-                )
-        finally:
-            painter.restore()
+        # Now scale/blit the rendered pixmap to the actual player view area
+        painter.save()
+        painter.setClipRect(x_offset, y_offset, width, height)
+        painter.drawPixmap(x_offset, y_offset, width, height, render_pixmap)
+        painter.restore()
 
     # Powerup status row at bottom removed. Now shown under status column.
     def _draw_powerup_status_column(self, painter, player_number, x, y):
