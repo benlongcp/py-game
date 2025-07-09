@@ -1095,7 +1095,7 @@ class BlackHole:
 
         # Calculate gravitational force (stronger than normal gravity)
         # Use inverse distance squared for more realistic black hole physics
-        force_magnitude = self.gravity_strength / (distance**2)
+        force_magnitude = self.gravity_strength / (distance**1.5)
 
         # Normalize direction vector
         force_x = (dx / distance) * force_magnitude

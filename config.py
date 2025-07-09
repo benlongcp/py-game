@@ -138,7 +138,7 @@ GRAVITY_DOT_COLOR = (100, 100, 100, 100)  # Semi-transparent gray (with alpha)
 GRAVITY_DOT_OUTLINE = (80, 80, 80, 150)  # Slightly more opaque outline
 
 # Gravitational physics
-GRAVITY_STRENGTH = 25.0  # Force multiplier for gravitational pull
+GRAVITY_STRENGTH = 15.0  # Force multiplier for gravitational pull
 GRAVITY_MAX_DISTANCE = (
     STATIC_CIRCLE_RADIUS
     * 8  # Circle radius + three radius extensions beyond boundary (total 4x radius)
