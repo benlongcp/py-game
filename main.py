@@ -19,12 +19,12 @@ from config import GAMEPAD_ENABLED
 
 
 class LaunchScreen(QWidget):
-    """Launch screen displaying HOLE BALL title with SVG elements."""
+    """Launch screen displaying HULL BALL title with SVG elements."""
 
     def __init__(self, controller):
         super().__init__()
         self.controller = controller
-        self.setWindowTitle("HOLE BALL")
+        self.setWindowTitle("HULL BALL")
         self.setFixedSize(1200, 800)
         self.setStyleSheet("background-color: black;")
 
@@ -62,11 +62,11 @@ class LaunchScreen(QWidget):
 
         painter.fillRect(0, 0, width, height, QBrush(gradient))
 
-        # Draw "HOLE BALL" title in big yellow letters with glow effect
+        # Draw "HULL BALL" title in big yellow letters with glow effect
         font = QFont("Arial", 72, QFont.Weight.Bold)
         painter.setFont(font)
 
-        title_text = "HOLE BALL"
+        title_text = "HULL BALL"
         font_metrics = painter.fontMetrics()
         text_width = font_metrics.horizontalAdvance(title_text)
         text_height = font_metrics.height()
