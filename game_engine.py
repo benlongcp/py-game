@@ -22,6 +22,83 @@ import math
 
 
 class GameEngine:
+    def _calculate_collision_volume(
+        self,
+        obj1_vel_x,
+        obj1_vel_y,
+        obj2_vel_x,
+        obj2_vel_y,
+        base_volume=1.0,
+        max_volume=1.0,
+    ):
+        """
+        Calculate collision volume based on relative velocities.
+
+        Args:
+            obj1_vel_x, obj1_vel_y: Velocity of first object
+            obj2_vel_x, obj2_vel_y: Velocity of second object
+            base_volume: Minimum volume (0.0 to 1.0)
+            max_volume: Maximum volume (0.0 to 1.0)
+
+        Returns:
+            float: Volume level between base_volume and max_volume
+        """
+        # Calculate relative velocity magnitude
+        rel_vel_x = obj1_vel_x - obj2_vel_x
+        rel_vel_y = obj1_vel_y - obj2_vel_y
+        relative_speed = math.sqrt(rel_vel_x * rel_vel_x + rel_vel_y * rel_vel_y)
+
+        # Define speed thresholds for volume scaling
+        min_speed = 50.0  # Below this, use base volume
+        max_speed = 500.0  # Above this, use max volume
+
+        # Calculate volume based on relative speed
+        if relative_speed <= min_speed:
+            return base_volume
+        elif relative_speed >= max_speed:
+            return max_volume
+        else:
+            # Linear interpolation between base and max volume
+            speed_ratio = (relative_speed - min_speed) / (max_speed - min_speed)
+            return base_volume + (max_volume - base_volume) * speed_ratio
+
+    def _play_collision_sound(
+        self,
+        sound_effect,
+        obj1_vel_x,
+        obj1_vel_y,
+        obj2_vel_x=0.0,
+        obj2_vel_y=0.0,
+        base_volume=0.3,
+    ):
+        """
+        Play a collision sound with volume modulated by relative velocities.
+
+        Args:
+            sound_effect: The pygame sound object to play
+            obj1_vel_x, obj1_vel_y: Velocity of first object
+            obj2_vel_x, obj2_vel_y: Velocity of second object (default 0 for stationary)
+            base_volume: Base volume level (0.0 to 1.0)
+        """
+        try:
+            import builtins
+
+            if hasattr(builtins, sound_effect) and getattr(builtins, sound_effect):
+                sound = getattr(builtins, sound_effect)
+                volume = self._calculate_collision_volume(
+                    obj1_vel_x,
+                    obj1_vel_y,
+                    obj2_vel_x,
+                    obj2_vel_y,
+                    base_volume=base_volume,
+                )
+                sound.set_volume(volume)
+                sound.play()
+            else:
+                pass  # Sound not found or None - silent fail
+        except Exception:
+            pass  # Silent fail for sound errors
+
     def _handle_projectile_collisions(self):
         """Check and resolve collisions between all active projectiles."""
         from physics import PhysicsEngine
@@ -81,6 +158,15 @@ class GameEngine:
                     p1.velocity_x, p1.velocity_y = v1x, v1y
                     p2.velocity_x, p2.velocity_y = v2x, v2y
 
+                    # Play collision sound with volume based on relative velocities
+                    self._play_collision_sound(
+                        "SFX_LANDHIT",
+                        p1.velocity_x,
+                        p1.velocity_y,
+                        p2.velocity_x,
+                        p2.velocity_y,
+                    )
+
     def get_player1_projectile_speed_multiplier(self):
         mult = 1.0
         for p in self.player1_powerups:
@@ -132,6 +218,10 @@ class GameEngine:
         self.red_dot_collision_cooldown = 0
         self.purple_dot_collision_cooldown = 0
         self.collision_cooldown_frames = 30  # 0.5 seconds at 60 FPS
+
+        # Boundary collision tracking to prevent sound spam
+        self.red_outside_boundary_last_frame = False
+        self.purple_outside_boundary_last_frame = False
 
         # Input states for both players
         self.player1_keys = set()  # Arrow keys + Enter
@@ -539,19 +629,59 @@ class GameEngine:
         """Check and resolve collisions between objects."""
         # Blue square collisions (check for hit point damage)
         if self.blue_square.check_collision_with_dot(self.red_dot):
+            # Play sound for red player hitting blue square with volume based on collision speed
+            self._play_collision_sound(
+                "SFX_DEFAULTHIT",
+                self.red_dot.velocity_x,
+                self.red_dot.velocity_y,
+                self.blue_square.velocity_x,
+                self.blue_square.velocity_y,
+            )
             self._damage_player("red", "blue_square")
         if self.purple_dot is not None:
             if self.blue_square.check_collision_with_dot(self.purple_dot):
+                # Play sound for purple player hitting blue square with volume based on collision speed
+                self._play_collision_sound(
+                    "SFX_DEFAULTHIT",
+                    self.purple_dot.velocity_x,
+                    self.purple_dot.velocity_y,
+                    self.blue_square.velocity_x,
+                    self.blue_square.velocity_y,
+                )
                 self._damage_player("purple", "blue_square")
 
         # Projectile collisions (check for hit point damage)
         for projectile in self.projectiles:
             if projectile.is_active:
-                projectile.check_collision_with_square(self.blue_square)
+                if projectile.check_collision_with_square(self.blue_square):
+                    # Play sound for projectile hitting blue cube with volume based on collision speed
+                    self._play_collision_sound(
+                        "SFX_ENEMYBLOCK",
+                        projectile.velocity_x,
+                        projectile.velocity_y,
+                        self.blue_square.velocity_x,
+                        self.blue_square.velocity_y,
+                    )
                 if projectile.check_collision_with_dot(self.red_dot, "red"):
+                    # Play sound for projectile hitting red player with volume based on collision speed
+                    self._play_collision_sound(
+                        "SFX_LANDHIT",
+                        projectile.velocity_x,
+                        projectile.velocity_y,
+                        self.red_dot.velocity_x,
+                        self.red_dot.velocity_y,
+                    )
                     self._damage_player("red", "projectile")
                 if self.purple_dot is not None:
                     if projectile.check_collision_with_dot(self.purple_dot, "purple"):
+                        # Play sound for projectile hitting purple player with volume based on collision speed
+                        self._play_collision_sound(
+                            "SFX_LANDHIT",
+                            projectile.velocity_x,
+                            projectile.velocity_y,
+                            self.purple_dot.velocity_x,
+                            self.purple_dot.velocity_y,
+                        )
                         self._damage_player("purple", "projectile")
 
         # Projectile vs projectile collisions
@@ -622,6 +752,15 @@ class GameEngine:
                 self.purple_dot.velocity_x -= impulse_x / self.purple_dot.mass
                 self.purple_dot.velocity_y -= impulse_y / self.purple_dot.mass
 
+                # Play collision sound with volume based on relative velocities
+                self._play_collision_sound(
+                    "SFX_LANDHIT",
+                    self.red_dot.velocity_x,
+                    self.red_dot.velocity_y,
+                    self.purple_dot.velocity_x,
+                    self.purple_dot.velocity_y,
+                )
+
     def shoot_projectile_player1(self):
         """Create and add a projectile for player 1 (red dot)."""
         if len(self.projectiles) >= PROJECTILE_MAX_COUNT:
@@ -685,8 +824,8 @@ class GameEngine:
         try:
             import builtins
 
-            if hasattr(builtins, "SFX_LANDHIT") and builtins.SFX_LANDHIT:
-                builtins.SFX_LANDHIT.play()
+            if hasattr(builtins, "SFX_LASERBLAST") and builtins.SFX_LASERBLAST:
+                builtins.SFX_LASERBLAST.play()
         except Exception:
             pass
         self.player1_rate_limiter.record_shot()
@@ -756,8 +895,8 @@ class GameEngine:
         try:
             import builtins
 
-            if hasattr(builtins, "SFX_LANDHIT") and builtins.SFX_LANDHIT:
-                builtins.SFX_LANDHIT.play()
+            if hasattr(builtins, "SFX_LASERBLAST") and builtins.SFX_LASERBLAST:
+                builtins.SFX_LASERBLAST.play()
         except Exception:
             pass
         self.player2_rate_limiter.record_shot()
@@ -834,17 +973,33 @@ class GameEngine:
         if self.purple_dot_collision_cooldown > 0:
             self.purple_dot_collision_cooldown -= 1
 
-        # Check for boundary collisions
-        self._check_boundary_collisions()
+        # Check for boundary collisions - now handled in physics layer
+        # No need for separate boundary collision checking since physics handles bouncing and sound
 
         # Check for HP depletion
         if self.red_player_hp <= 0:
+            # Play selfdestruct sound for red player death
+            try:
+                import builtins
+
+                if hasattr(builtins, "SFX_SELFDESTRUCT") and builtins.SFX_SELFDESTRUCT:
+                    builtins.SFX_SELFDESTRUCT.play()
+            except Exception:
+                pass
             self.purple_player_score += 1  # HP depletion = 1 point
             self.trigger_score_pulse(2)  # Trigger purple player score pulse
             self._reset_player_hp()
             # print(
             #     f"Purple player scores 1 point from red HP depletion! Score: {self.purple_player_score}")
         elif self.purple_player_hp <= 0:
+            # Play selfdestruct sound for purple player death
+            try:
+                import builtins
+
+                if hasattr(builtins, "SFX_SELFDESTRUCT") and builtins.SFX_SELFDESTRUCT:
+                    builtins.SFX_SELFDESTRUCT.play()
+            except Exception:
+                pass
             self.red_player_score += 1  # HP depletion = 1 point
             self.trigger_score_pulse(1)  # Trigger red player score pulse
             self._reset_player_hp()
@@ -859,16 +1014,51 @@ class GameEngine:
         red_ellipse_val = (self.red_dot.virtual_x / GRID_RADIUS_X) ** 2 + (
             self.red_dot.virtual_y / GRID_RADIUS_Y
         ) ** 2
-        if red_ellipse_val > 1.0:
+        red_outside_boundary = red_ellipse_val > 1.0
+
+        if red_outside_boundary:
+            # Only play sound when first crossing the boundary (not every frame while outside)
+            if not self.red_outside_boundary_last_frame:
+                print(
+                    f"DEBUG: Red player boundary collision! Position: ({self.red_dot.virtual_x:.1f}, {self.red_dot.virtual_y:.1f}), Speed: ({self.red_dot.velocity_x:.1f}, {self.red_dot.velocity_y:.1f})"
+                )
+                # Play boundary collision sound with volume based on player speed
+                self._play_collision_sound(
+                    "SFX_FREESHIELD",
+                    self.red_dot.velocity_x,
+                    self.red_dot.velocity_y,
+                    0.0,
+                    0.0,
+                    base_volume=0.7,  # Increased base volume for boundary collisions
+                )  # Boundary is stationary
             self._damage_player("red", "boundary")
+
+        # Update boundary state for next frame
+        self.red_outside_boundary_last_frame = red_outside_boundary
 
         # Check purple player boundary collision
         if self.purple_dot is not None:
             purple_ellipse_val = (self.purple_dot.virtual_x / GRID_RADIUS_X) ** 2 + (
                 self.purple_dot.virtual_y / GRID_RADIUS_Y
             ) ** 2
-            if purple_ellipse_val > 1.0:
+            purple_outside_boundary = purple_ellipse_val > 1.0
+
+            if purple_outside_boundary:
+                # Only play sound when first crossing the boundary (not every frame while outside)
+                if not self.purple_outside_boundary_last_frame:
+                    # Play boundary collision sound with volume based on player speed
+                    self._play_collision_sound(
+                        "SFX_FREESHIELD",
+                        self.purple_dot.velocity_x,
+                        self.purple_dot.velocity_y,
+                        0.0,
+                        0.0,
+                        base_volume=0.7,  # Increased base volume for boundary collisions
+                    )  # Boundary is stationary
                 self._damage_player("purple", "boundary")
+
+            # Update boundary state for next frame
+            self.purple_outside_boundary_last_frame = purple_outside_boundary
 
     def _reset_player_hp(self):
         """Reset both players' HP to initial values."""
@@ -876,6 +1066,9 @@ class GameEngine:
         self.purple_player_hp = INITIAL_HIT_POINTS
         self.red_dot_collision_cooldown = 0
         self.purple_dot_collision_cooldown = 0
+        # Reset boundary collision state tracking
+        self.red_outside_boundary_last_frame = False
+        self.purple_outside_boundary_last_frame = False
 
     def _update_scoring(self):
         """Update scoring based on blue square position relative to static circles."""

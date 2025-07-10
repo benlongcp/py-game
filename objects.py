@@ -120,6 +120,21 @@ class RedDot:
             dot_product = self.velocity_x * normal_x + self.velocity_y * normal_y
             self.velocity_x -= 2 * dot_product * normal_x * BOUNCE_FACTOR
             self.velocity_y -= 2 * dot_product * normal_y * BOUNCE_FACTOR
+
+            # Play boundary collision sound effect
+            try:
+                import builtins
+
+                if hasattr(builtins, "SFX_FREESHIELD") and builtins.SFX_FREESHIELD:
+                    # Calculate volume based on collision speed
+                    collision_speed = math.sqrt(self.velocity_x**2 + self.velocity_y**2)
+                    volume = min(
+                        1.0, max(0.3, collision_speed / 300.0)
+                    )  # Scale 0.3-1.0 based on speed
+                    builtins.SFX_FREESHIELD.set_volume(volume)
+                    builtins.SFX_FREESHIELD.play()
+            except Exception:
+                pass
         else:
             self.virtual_x = new_x
             self.virtual_y = new_y

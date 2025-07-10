@@ -46,6 +46,26 @@ class LaunchScreen(QWidget):
             self.sfx_toggleswitch = pygame.mixer.Sound("sounds/toggleswitch.wav")
         except Exception:
             self.sfx_toggleswitch = None
+        try:
+            self.sfx_laserblast = pygame.mixer.Sound("sounds/laserblast.wav")
+        except Exception:
+            self.sfx_laserblast = None
+        try:
+            self.sfx_enemyblock = pygame.mixer.Sound("sounds/enemyblock.wav")
+        except Exception:
+            self.sfx_enemyblock = None
+        try:
+            self.sfx_selfdestruct = pygame.mixer.Sound("sounds/selfdestruct.wav")
+        except Exception:
+            self.sfx_selfdestruct = None
+        try:
+            self.sfx_defaulthit = pygame.mixer.Sound("sounds/defaulthit.wav")
+        except Exception:
+            self.sfx_defaulthit = None
+        try:
+            self.sfx_freeshield = pygame.mixer.Sound("sounds/freeshield.wav")
+        except Exception:
+            self.sfx_freeshield = None
 
         # Provide access to SFX for other modules
         import builtins
@@ -53,6 +73,11 @@ class LaunchScreen(QWidget):
         builtins.SFX_ENEMYALERT = self.sfx_enemyalert
         builtins.SFX_LANDHIT = self.sfx_landhit
         builtins.SFX_TOGGLESWITCH = self.sfx_toggleswitch
+        builtins.SFX_LASERBLAST = self.sfx_laserblast
+        builtins.SFX_ENEMYBLOCK = self.sfx_enemyblock
+        builtins.SFX_SELFDESTRUCT = self.sfx_selfdestruct
+        builtins.SFX_DEFAULTHIT = self.sfx_defaulthit
+        builtins.SFX_FREESHIELD = self.sfx_freeshield
 
         # Set up SVG renderers
         self.red_ship_renderer = QSvgRenderer(QByteArray(SVG_RED_SHIP.encode("utf-8")))
