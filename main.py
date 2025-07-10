@@ -20,12 +20,12 @@ from config import GAMEPAD_ENABLED
 
 
 class LaunchScreen(QWidget):
-    """Launch screen displaying HULL BALL title with SVG elements."""
+    """Launch screen displaying BOXHOLE title with SVG elements."""
 
     def __init__(self, controller):
         super().__init__()
         self.controller = controller
-        self.setWindowTitle("HULL BALL")
+        self.setWindowTitle("BOXHOLE")
         self.setFixedSize(1200, 800)
         self.setStyleSheet("background-color: black;")
 
@@ -66,6 +66,10 @@ class LaunchScreen(QWidget):
             self.sfx_freeshield = pygame.mixer.Sound("sounds/freeshield.wav")
         except Exception:
             self.sfx_freeshield = None
+        try:
+            self.sfx_spaceship = pygame.mixer.Sound("sounds/spaceship.wav")
+        except Exception:
+            self.sfx_spaceship = None
 
         # Provide access to SFX for other modules
         import builtins
@@ -78,6 +82,7 @@ class LaunchScreen(QWidget):
         builtins.SFX_SELFDESTRUCT = self.sfx_selfdestruct
         builtins.SFX_DEFAULTHIT = self.sfx_defaulthit
         builtins.SFX_FREESHIELD = self.sfx_freeshield
+        builtins.SFX_SPACESHIP = self.sfx_spaceship
 
         # Set up SVG renderers
         self.red_ship_renderer = QSvgRenderer(QByteArray(SVG_RED_SHIP.encode("utf-8")))
@@ -113,11 +118,11 @@ class LaunchScreen(QWidget):
 
         painter.fillRect(0, 0, width, height, QBrush(gradient))
 
-        # Draw "HULL BALL" title in big yellow letters with glow effect
+        # Draw "BOXHOLE" title in big yellow letters with glow effect
         font = QFont("Arial", 72, QFont.Weight.Bold)
         painter.setFont(font)
 
-        title_text = "HULL BALL"
+        title_text = "BOXHOLE"
         font_metrics = painter.fontMetrics()
         text_width = font_metrics.horizontalAdvance(title_text)
         text_height = font_metrics.height()

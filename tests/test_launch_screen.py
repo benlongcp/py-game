@@ -32,7 +32,7 @@ def test_launch_screen():
     timer.start(3000)  # 3 seconds
 
     print("Launch screen should now be visible with:")
-    print("- 'HOLE BALL' in big yellow letters")
+    print("- 'BOXHOLE' in big yellow letters")
     print("- Black radial gradient background")
     print("- Red ship SVG (left side, rotated)")
     print("- Blue cube SVG (right side, rotated)")

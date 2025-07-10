@@ -1,5 +1,5 @@
 
-# HOLE BALL: Topographical Plane Physics Game
+# BOXHOLE: Topographical Plane Physics Game
 
 An advanced PyQt6-based multi-player physics sandbox featuring split-screen play, black holes with massive gravitational fields, dynamic projectiles, and visually rich effects. Designed for both competitive and cooperative play, with robust modular architecture and extensive test coverage.
 
@@ -48,7 +48,7 @@ An advanced PyQt6-based multi-player physics sandbox featuring split-screen play
 ## 🏗️ Program Flow
 
 1. **Launch Screen:**
-   - Displays "HOLE BALL" title, SVG ships/cubes, and instructions.
+   - Displays "BOXHOLE" title, SVG ships/cubes, and instructions.
    - Any key, mouse, or gamepad input starts the game.
 2. **Game Initialization:**
    - Loads configuration and sets up all objects (players, black holes, blue square, static circles).
@@ -278,7 +278,7 @@ python tests/check_organization.py
 
 ---
 
-Enjoy HOLE BALL — the ultimate topographical physics arena!
+Enjoy BOXHOLE — the ultimate topographical physics arena!
 - Real-time frame rate display at the bottom center of the window
 - Updates every second showing current performance
 - Semi-transparent background for easy reading

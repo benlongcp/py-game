@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Build script for HOLE BALL executable packaging.
+Build script for BOXHOLE executable packaging.
 Creates a standalone executable that can be distributed to other computers.
 """
 
@@ -28,7 +28,7 @@ def clean_build():
 
 def create_executable():
     """Create the executable using PyInstaller."""
-    print("📦 Building HOLE BALL executable...")
+    print("📦 Building BOXHOLE executable...")
 
     # PyInstaller command with optimal settings
     cmd = [
@@ -36,9 +36,9 @@ def create_executable():
         "--onefile",  # Single executable file
         "--windowed",  # No console window (GUI only)
         "--name",
-        "HOLE_BALL",  # Executable name
+        "BOXHOLE",  # Executable name
         "--icon",
-        "icon.ico",  # Icon file (if you have one)
+        "bluecube.ico",  # Blue cube icon file
         "--add-data",
         "tests;tests",  # Include tests folder
         "--exclude-module",
@@ -58,10 +58,10 @@ def create_executable():
     ]
 
     # Remove icon option if icon file doesn't exist
-    if not os.path.exists("icon.ico"):
+    if not os.path.exists("bluecube.ico"):
         cmd.remove("--icon")
-        cmd.remove("icon.ico")
-        print("   ⚠️  No icon.ico found, building without icon")
+        cmd.remove("bluecube.ico")
+        print("   ⚠️  No bluecube.ico found, building without icon")
 
     try:
         result = subprocess.run(cmd, check=True, capture_output=True, text=True)
@@ -76,7 +76,7 @@ def create_executable():
 def create_installer_info():
     """Create installation instructions."""
     info_content = """
-# HOLE BALL - Installation Instructions
+# BOXHOLE - Installation Instructions
 
 ## System Requirements
 - Windows 10/11 (64-bit)
@@ -85,7 +85,7 @@ def create_installer_info():
 - Xbox/compatible controllers for gamepad support (optional)
 
 ## Installation
-1. Download HOLE_BALL.exe
+1. Download BOXHOLE.exe
 2. Run the executable - no installation required!
 3. The game will start with the launch screen
 
@@ -106,7 +106,7 @@ def create_installer_info():
 - For performance issues, try running as administrator
 - Contact support if you encounter any problems
 
-Enjoy HOLE BALL!
+Enjoy BOXHOLE!
 """
 
     with open("dist/INSTALLATION.txt", "w") as f:
@@ -116,7 +116,7 @@ Enjoy HOLE BALL!
 
 def main():
     """Main build process."""
-    print("🎮 HOLE BALL Build Process")
+    print("🎮 BOXHOLE Build Process")
     print("=" * 40)
 
     # Check if PyInstaller is installed
@@ -135,14 +135,14 @@ def main():
         # Show results
         print("\n🎉 Build Complete!")
         print("=" * 40)
-        print(f"📁 Executable location: dist/HOLE_BALL.exe")
+        print(f"📁 Executable location: dist/BOXHOLE.exe")
 
-        if os.path.exists("dist/HOLE_BALL.exe"):
-            size_mb = os.path.getsize("dist/HOLE_BALL.exe") / (1024 * 1024)
+        if os.path.exists("dist/BOXHOLE.exe"):
+            size_mb = os.path.getsize("dist/BOXHOLE.exe") / (1024 * 1024)
             print(f"📊 File size: {size_mb:.1f} MB")
 
         print("\n📋 Distribution Files:")
-        print("   • HOLE_BALL.exe - Main executable")
+        print("   • BOXHOLE.exe - Main executable")
         print("   • INSTALLATION.txt - Setup instructions")
 
         print("\n🚀 Ready for distribution!")

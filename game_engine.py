@@ -254,6 +254,15 @@ class GameEngine:
         self.circle_pulse_duration = 60  # frames (longer than score pulse)
         self.circle_pulse_circle = None  # "red" or "purple"
 
+        # Engine sound system
+        self.player1_engine_sound_channel = None  # Pygame channel for player 1 engine
+        self.player2_engine_sound_channel = None  # Pygame channel for player 2 engine
+        self.player1_engine_volume = 0.0  # Current engine volume (0.0 to 1.0)
+        self.player2_engine_volume = 0.0  # Current engine volume (0.0 to 1.0)
+        self.player1_is_accelerating = False  # Track acceleration state
+        self.player2_is_accelerating = False  # Track acceleration state
+        self.engine_fade_speed = 0.02  # Volume change per frame (0.02 = slower fade for more gradual engine sound)
+
     def set_gamepad_manager(self, gamepad_manager):
         """Set the gamepad manager reference."""
         self._gamepad_manager = gamepad_manager
@@ -446,6 +455,8 @@ class GameEngine:
         self.reset_score_pulse()
         # Reset circle pulse system
         self.reset_circle_pulse()
+        # Reset engine sounds
+        self._stop_engine_sounds()
         # Keep gamepad manager reference if set
         if hasattr(self, "_gamepad_manager"):
             self.set_gamepad_manager(self._gamepad_manager)
@@ -474,6 +485,8 @@ class GameEngine:
         self.reset_score_pulse()
         # Reset circle pulse system
         self.reset_circle_pulse()
+        # Reset engine sounds
+        self._stop_engine_sounds()
         if hasattr(self, "_gamepad_manager"):
             self.set_gamepad_manager(self._gamepad_manager)
         self.apply_powerup_effects()
@@ -489,6 +502,7 @@ class GameEngine:
         self._update_scoring()
         self.update_score_pulse()  # Update score pulse effects
         self.update_circle_pulse()  # Update circle pulse effects
+        self._update_engine_sounds()  # Update engine sound effects
 
     def _handle_input(self):
         """Process input for both players."""
@@ -515,6 +529,11 @@ class GameEngine:
             self.red_dot.acceleration_y = (
                 gamepad1_input["left_stick_y"] * ANALOG_STICK_MULTIPLIER
             )
+            # Track acceleration state for engine sound
+            self.player1_is_accelerating = (
+                abs(self.red_dot.acceleration_x) > 0.01
+                or abs(self.red_dot.acceleration_y) > 0.01
+            )
             # Clamp velocity to max_speed
             speed = math.sqrt(self.red_dot.velocity_x**2 + self.red_dot.velocity_y**2)
             if speed > max_speed:
@@ -539,6 +558,13 @@ class GameEngine:
                 self.red_dot.acceleration_y = -ACCELERATION
             if Qt.Key.Key_Down in self.player1_keys:
                 self.red_dot.acceleration_y = ACCELERATION
+
+            # Track acceleration state for engine sound
+            self.player1_is_accelerating = (
+                abs(self.red_dot.acceleration_x) > 0.01
+                or abs(self.red_dot.acceleration_y) > 0.01
+            )
+
             # Keyboard firing (e.g., Enter key)
             if (
                 Qt.Key.Key_Return in self.player1_keys
@@ -568,6 +594,11 @@ class GameEngine:
                 self.purple_dot.acceleration_y = (
                     gamepad2_input["left_stick_y"] * ANALOG_STICK_MULTIPLIER
                 )
+                # Track acceleration state for engine sound
+                self.player2_is_accelerating = (
+                    abs(self.purple_dot.acceleration_x) > 0.01
+                    or abs(self.purple_dot.acceleration_y) > 0.01
+                )
                 speed2 = math.sqrt(
                     self.purple_dot.velocity_x**2 + self.purple_dot.velocity_y**2
                 )
@@ -593,6 +624,13 @@ class GameEngine:
                     self.purple_dot.acceleration_y = -ACCELERATION
                 if Qt.Key.Key_S in self.player2_keys:
                     self.purple_dot.acceleration_y = ACCELERATION
+
+                # Track acceleration state for engine sound
+                self.player2_is_accelerating = (
+                    abs(self.purple_dot.acceleration_x) > 0.01
+                    or abs(self.purple_dot.acceleration_y) > 0.01
+                )
+
                 # Keyboard firing (e.g., Ctrl key)
                 if Qt.Key.Key_Control in self.player2_keys:
                     self.shoot_projectile_player2()
@@ -1296,3 +1334,115 @@ class GameEngine:
             if p == "plus_2_projectiles_per_sec":
                 base += 2
         return base
+
+    def _update_engine_sounds(self):
+        """Update engine sound effects with fade-in/fade-out based on acceleration."""
+        try:
+            import builtins
+            import pygame
+
+            # Check if spaceship sound is available
+            if not hasattr(builtins, "SFX_SPACESHIP") or not builtins.SFX_SPACESHIP:
+                return
+
+            # Player 1 engine sound
+            if self.player1_is_accelerating:
+                # Fade in
+                self.player1_engine_volume = min(
+                    1.0, self.player1_engine_volume + self.engine_fade_speed
+                )
+            else:
+                # Fade out
+                self.player1_engine_volume = max(
+                    0.0, self.player1_engine_volume - self.engine_fade_speed
+                )
+
+            # Manage Player 1 engine sound channel
+            if self.player1_engine_volume > 0.0:
+                if (
+                    self.player1_engine_sound_channel is None
+                    or not self.player1_engine_sound_channel.get_busy()
+                ):
+                    # Start playing the engine sound on loop
+                    self.player1_engine_sound_channel = builtins.SFX_SPACESHIP.play(
+                        loops=-1
+                    )  # -1 = infinite loop
+
+                if self.player1_engine_sound_channel:
+                    self.player1_engine_sound_channel.set_volume(
+                        self.player1_engine_volume
+                    )
+            else:
+                # Stop the engine sound
+                if (
+                    self.player1_engine_sound_channel
+                    and self.player1_engine_sound_channel.get_busy()
+                ):
+                    self.player1_engine_sound_channel.stop()
+                    self.player1_engine_sound_channel = None
+
+            # Player 2 engine sound (only if purple dot exists)
+            if self.purple_dot is not None:
+                if self.player2_is_accelerating:
+                    # Fade in
+                    self.player2_engine_volume = min(
+                        1.0, self.player2_engine_volume + self.engine_fade_speed
+                    )
+                else:
+                    # Fade out
+                    self.player2_engine_volume = max(
+                        0.0, self.player2_engine_volume - self.engine_fade_speed
+                    )
+
+                # Manage Player 2 engine sound channel
+                if self.player2_engine_volume > 0.0:
+                    if (
+                        self.player2_engine_sound_channel is None
+                        or not self.player2_engine_sound_channel.get_busy()
+                    ):
+                        # Start playing the engine sound on loop
+                        self.player2_engine_sound_channel = builtins.SFX_SPACESHIP.play(
+                            loops=-1
+                        )  # -1 = infinite loop
+
+                    if self.player2_engine_sound_channel:
+                        self.player2_engine_sound_channel.set_volume(
+                            self.player2_engine_volume
+                        )
+                else:
+                    # Stop the engine sound
+                    if (
+                        self.player2_engine_sound_channel
+                        and self.player2_engine_sound_channel.get_busy()
+                    ):
+                        self.player2_engine_sound_channel.stop()
+                        self.player2_engine_sound_channel = None
+
+        except Exception:
+            # Silent fail for sound errors
+            pass
+
+    def _stop_engine_sounds(self):
+        """Stop all engine sounds and reset engine sound state."""
+        try:
+            # Stop Player 1 engine sound
+            if (
+                self.player1_engine_sound_channel
+                and self.player1_engine_sound_channel.get_busy()
+            ):
+                self.player1_engine_sound_channel.stop()
+            self.player1_engine_sound_channel = None
+            self.player1_engine_volume = 0.0
+            self.player1_is_accelerating = False
+
+            # Stop Player 2 engine sound
+            if (
+                self.player2_engine_sound_channel
+                and self.player2_engine_sound_channel.get_busy()
+            ):
+                self.player2_engine_sound_channel.stop()
+            self.player2_engine_sound_channel = None
+            self.player2_engine_volume = 0.0
+            self.player2_is_accelerating = False
+        except Exception:
+            pass

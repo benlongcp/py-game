@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
   <Product Id="4E82E9A2-73C4-4F99-B5E8-D06813D1828F" 
-           Name="HOLE BALL" 
+           Name="BOXHOLE" 
            Language="1033" 
            Version="1.0.0.0" 
            Manufacturer="Ben Long" 
@@ -10,24 +10,24 @@
     <Package InstallerVersion="200" 
              Compressed="yes" 
              InstallScope="perMachine" 
-             Description="HOLE BALL - Topographical Physics Game"
+             Description="BOXHOLE - Topographical Physics Game"
              Comments="Split-screen multiplayer physics sandbox game" />
 
     <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
     <MediaTemplate EmbedCab="yes" />
 
     <!-- Installation directory structure -->
-    <Feature Id="ProductFeature" Title="HOLE BALL" Level="1">
+    <Feature Id="ProductFeature" Title="BOXHOLE" Level="1">
       <ComponentGroupRef Id="ProductComponents" />
     </Feature>
 
     <!-- Directory structure -->
     <Directory Id="TARGETDIR" Name="SourceDir">
       <Directory Id="ProgramFilesFolder">
-        <Directory Id="INSTALLFOLDER" Name="HOLE BALL" />
+        <Directory Id="INSTALLFOLDER" Name="BOXHOLE" />
       </Directory>
       <Directory Id="ProgramMenuFolder">
-        <Directory Id="ApplicationProgramsFolder" Name="HOLE BALL"/>
+        <Directory Id="ApplicationProgramsFolder" Name="BOXHOLE"/>
       </Directory>
       <Directory Id="DesktopFolder" Name="Desktop"/>
     </Directory>
@@ -36,9 +36,9 @@
     <DirectoryRef Id="ApplicationProgramsFolder">
       <Component Id="ApplicationShortcut" Guid="*">
         <Shortcut Id="ApplicationStartMenuShortcut"
-                  Name="HOLE BALL"
+                  Name="BOXHOLE"
                   Description="Topographical Physics Game"
-                  Target="[#HOLE_BALL.exe]"
+                  Target="[#BOXHOLE.exe]"
                   WorkingDirectory="INSTALLFOLDER"/>
         <RemoveFolder Id="ApplicationProgramsFolder" On="uninstall"/>
         <RegistryValue Root="HKCU" Key="Software\Microsoft\HOLEBALL" Name="installed" Type="integer" Value="1" KeyPath="yes"/>
@@ -49,9 +49,9 @@
     <DirectoryRef Id="DesktopFolder">
       <Component Id="ApplicationShortcutDesktop" Guid="*">
         <Shortcut Id="ApplicationDesktopShortcut"
-                  Name="HOLE BALL"
+                  Name="BOXHOLE"
                   Description="Topographical Physics Game"
-                  Target="[#HOLE_BALL.exe]"
+                  Target="[#BOXHOLE.exe]"
                   WorkingDirectory="INSTALLFOLDER"/>
         <RegistryValue Root="HKCU" Key="Software\Microsoft\HOLEBALL" Name="desktop" Type="integer" Value="1" KeyPath="yes"/>
       </Component>
@@ -62,7 +62,7 @@
   <Fragment>
     <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
       <Component Id="MainExecutable" Guid="*">
-        <File Id="HOLE_BALL.exe" Source="dist\HOLE_BALL.exe" KeyPath="yes"/>
+        <File Id="BOXHOLE.exe" Source="dist\BOXHOLE.exe" KeyPath="yes"/>
       </Component>
       <Component Id="InstallationGuide" Guid="*">
         <File Id="INSTALLATION.txt" Source="dist\INSTALLATION.txt"/>
