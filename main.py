@@ -6,6 +6,7 @@ Creates a shared game engine and split-screen multi-player setup.
 import sys
 import math
 import pygame  # For sound effects
+import os
 from PyQt6.QtWidgets import QApplication, QWidget
 from PyQt6.QtCore import QTimer, Qt
 from PyQt6.QtGui import QPainter, QFont, QColor, QRadialGradient, QBrush, QPen
@@ -17,6 +18,16 @@ from split_screen import SplitScreenView
 from objects import SVG_RED_SHIP, SVG_BLUE_CUBE
 from gamepad_manager import GamepadManager
 from config import GAMEPAD_ENABLED
+
+
+# --- Resource path helper for PyInstaller compatibility ---
+def resource_path(relative_path):
+    """Get absolute path to resource, works for dev and for PyInstaller bundle"""
+    try:
+        base_path = sys._MEIPASS
+    except AttributeError:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
 
 
 class LaunchScreen(QWidget):
@@ -34,40 +45,57 @@ class LaunchScreen(QWidget):
             pygame.mixer.init()
 
         # Preload global sound effects
+
         try:
-            self.sfx_enemyalert = pygame.mixer.Sound("sounds/enemyalert.wav")
+            self.sfx_enemyalert = pygame.mixer.Sound(
+                resource_path("sounds/enemyalert.wav")
+            )
         except Exception:
             self.sfx_enemyalert = None
         try:
-            self.sfx_landhit = pygame.mixer.Sound("sounds/landhit.wav")
+            self.sfx_landhit = pygame.mixer.Sound(resource_path("sounds/landhit.wav"))
         except Exception:
             self.sfx_landhit = None
         try:
-            self.sfx_toggleswitch = pygame.mixer.Sound("sounds/toggleswitch.wav")
+            self.sfx_toggleswitch = pygame.mixer.Sound(
+                resource_path("sounds/toggleswitch.wav")
+            )
         except Exception:
             self.sfx_toggleswitch = None
         try:
-            self.sfx_laserblast = pygame.mixer.Sound("sounds/laserblast.wav")
+            self.sfx_laserblast = pygame.mixer.Sound(
+                resource_path("sounds/laserblast.wav")
+            )
         except Exception:
             self.sfx_laserblast = None
         try:
-            self.sfx_enemyblock = pygame.mixer.Sound("sounds/enemyblock.wav")
+            self.sfx_enemyblock = pygame.mixer.Sound(
+                resource_path("sounds/enemyblock.wav")
+            )
         except Exception:
             self.sfx_enemyblock = None
         try:
-            self.sfx_selfdestruct = pygame.mixer.Sound("sounds/selfdestruct.wav")
+            self.sfx_selfdestruct = pygame.mixer.Sound(
+                resource_path("sounds/selfdestruct.wav")
+            )
         except Exception:
             self.sfx_selfdestruct = None
         try:
-            self.sfx_defaulthit = pygame.mixer.Sound("sounds/defaulthit.wav")
+            self.sfx_defaulthit = pygame.mixer.Sound(
+                resource_path("sounds/defaulthit.wav")
+            )
         except Exception:
             self.sfx_defaulthit = None
         try:
-            self.sfx_freeshield = pygame.mixer.Sound("sounds/freeshield.wav")
+            self.sfx_freeshield = pygame.mixer.Sound(
+                resource_path("sounds/freeshield.wav")
+            )
         except Exception:
             self.sfx_freeshield = None
         try:
-            self.sfx_spaceship = pygame.mixer.Sound("sounds/spaceship.wav")
+            self.sfx_spaceship = pygame.mixer.Sound(
+                resource_path("sounds/spaceship.wav")
+            )
         except Exception:
             self.sfx_spaceship = None
 

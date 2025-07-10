@@ -1118,7 +1118,23 @@ class GameEngine:
             self.red_player_score += 2  # Goal = 2 points
             self.trigger_circle_pulse("red")  # Trigger red circle pulse
             self._respawn_blue_square()
-            self.projectiles.clear()  # Remove all projectiles after a goal            self.red_circle_overlap_timer = 0
+            self.projectiles.clear()  # Remove all projectiles after a goal
+            self.red_circle_overlap_timer = 0
+            # Play goal scored sound effect
+            try:
+                import builtins
+
+                if hasattr(builtins, "SFX_ENEMYALERT") and builtins.SFX_ENEMYALERT:
+                    builtins.SFX_ENEMYALERT.play()
+            except Exception:
+                pass
+
+        if self.purple_circle_overlap_timer >= SCORE_OVERLAP_FRAMES:
+            self.purple_player_score += 2  # Goal = 2 points
+            self.trigger_circle_pulse("purple")  # Trigger purple circle pulse
+            self._respawn_blue_square()
+            self.projectiles.clear()  # Remove all projectiles after a goal
+            self.purple_circle_overlap_timer = 0
             # Play goal scored sound effect
             try:
                 import builtins

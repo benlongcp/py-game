@@ -7,6 +7,15 @@ hiddenimports = ['pygame']
 tmp_ret = collect_all('pygame')
 datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 
+# --- Ensure all sound files are included in the build ---
+import glob
+import os
+sound_dir = os.path.join(os.getcwd(), 'sounds')
+if os.path.isdir(sound_dir):
+    for fname in os.listdir(sound_dir):
+        if fname.lower().endswith('.wav'):
+            datas.append((os.path.join('sounds', fname), 'sounds'))
+
 
 a = Analysis(
     ['main.py'],
