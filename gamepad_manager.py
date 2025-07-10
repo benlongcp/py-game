@@ -76,8 +76,18 @@ class GamepadManager:
 
     def update(self):
         """Update gamepad states - call this each frame."""
-        # Only pump events, don't consume them to avoid interfering with PyQt
-        pygame.event.pump()
+        # Optimize pygame event pumping - only pump every few frames in fullscreen
+        if not hasattr(self, "_pump_counter"):
+            self._pump_counter = 0
+
+        self._pump_counter += 1
+
+        # In fullscreen mode, pump events less frequently to reduce CPU usage
+        # This is the major performance bottleneck identified in profiling
+        pump_frequency = 3 if hasattr(self, "_fullscreen_mode") else 1
+
+        if self._pump_counter % pump_frequency == 0:
+            pygame.event.pump()
 
         # Only refresh gamepad list occasionally, not every frame
         # This prevents potential gamepad reinitialization issues
@@ -112,3 +122,15 @@ class GamepadManager:
                 }
             )
         return info
+
+    def set_fullscreen_mode(self, enabled):
+        """Enable/disable fullscreen optimizations."""
+        if enabled:
+            self._fullscreen_mode = True
+            print(
+                "GamepadManager: Enabled fullscreen optimizations (reduced event pumping)"
+            )
+        else:
+            if hasattr(self, "_fullscreen_mode"):
+                delattr(self, "_fullscreen_mode")
+            print("GamepadManager: Disabled fullscreen optimizations")

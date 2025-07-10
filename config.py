@@ -23,7 +23,9 @@ FPS_COUNTER_COLOR = (255, 255, 255)  # White text
 FPS_COUNTER_BACKGROUND = (0, 0, 0, 150)  # Semi-transparent black background
 
 # Grid settings
-GRID_SPACING = 50
+GRID_SPACING = (
+    60  # Increased from 50 to 60 for better performance (20% fewer grid dots)
+)
 GRID_DOT_RADIUS = 1
 GRID_RADIUS_X = 1500  # Horizontal radius (major axis) - increased 50% from 1000
 GRID_RADIUS_Y = (
@@ -57,7 +59,9 @@ PROJECTILE_RADIUS = 2  # Smaller than the red dot
 PROJECTILE_COLOR = (0, 255, 0)  # Green
 PROJECTILE_MIN_SPEED = 5.0  # Minimum projectile speed
 PROJECTILE_MASS = 5  # Light mass for projectiles
-PROJECTILE_MAX_COUNT = 120  # Maximum number of projectiles on screen (increased x6)
+PROJECTILE_MAX_COUNT = (
+    50  # Reduced from 120 to 50 for better performance (still allows intense gameplay)
+)
 
 # Blue square settings
 SQUARE_SIZE_MULTIPLIER = 10  # Square is 10x the size of the red dot

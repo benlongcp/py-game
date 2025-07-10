@@ -5,6 +5,7 @@ This allows multiple windows to reference the same game state.
 """
 
 import math
+import time
 from PyQt6.QtCore import Qt
 from config import *
 from objects import (
@@ -18,7 +19,6 @@ from objects import (
 )
 from physics import PhysicsEngine
 from rate_limiter import ProjectileRateLimiter
-import math
 
 
 class GameEngine:
@@ -99,74 +99,6 @@ class GameEngine:
         except Exception:
             pass  # Silent fail for sound errors
 
-    def _handle_projectile_collisions(self):
-        """Check and resolve collisions between all active projectiles."""
-        from physics import PhysicsEngine
-
-        projectiles = self.projectiles
-        n = len(projectiles)
-        for i in range(n):
-            p1 = projectiles[i]
-            if not p1.is_active:
-                continue
-            for j in range(i + 1, n):
-                p2 = projectiles[j]
-                if not p2.is_active:
-                    continue
-                # Prevent interaction if both projectiles were just launched and are still overlapping (multi-shot)
-                if getattr(p1, "just_launched", False) and getattr(
-                    p2, "just_launched", False
-                ):
-                    # Only allow interaction if they are no longer overlapping
-                    dx = p2.x - p1.x
-                    dy = p2.y - p1.y
-                    dist_sq = dx * dx + dy * dy
-                    min_dist = p1.radius + p2.radius
-                    if dist_sq < min_dist * min_dist:
-                        continue  # Still grouped, skip collision
-                    else:
-                        # Once separated, mark as no longer just launched
-                        p1.just_launched = False
-                        p2.just_launched = False
-                # Check for collision (circle-circle)
-                dx = p2.x - p1.x
-                dy = p2.y - p1.y
-                dist_sq = dx * dx + dy * dy
-                min_dist = p1.radius + p2.radius
-                if dist_sq < min_dist * min_dist:
-                    dist = math.sqrt(dist_sq) if dist_sq > 0 else 1e-6
-                    # Normal vector
-                    nx = dx / dist
-                    ny = dy / dist
-                    # Move projectiles apart to prevent overlap
-                    overlap = min_dist - dist
-                    p1.x -= nx * (overlap / 2)
-                    p1.y -= ny * (overlap / 2)
-                    p2.x += nx * (overlap / 2)
-                    p2.y += ny * (overlap / 2)
-                    # Apply collision response
-                    v1x, v1y, v2x, v2y = PhysicsEngine.apply_collision_response(
-                        p1.velocity_x,
-                        p1.velocity_y,
-                        p1.mass,
-                        p2.velocity_x,
-                        p2.velocity_y,
-                        p2.mass,
-                        nx,
-                        ny,
-                    )
-                    p1.velocity_x, p1.velocity_y = v1x, v1y
-                    p2.velocity_x, p2.velocity_y = v2x, v2y
-
-                    # Play collision sound with volume based on relative velocities
-                    self._play_collision_sound(
-                        "SFX_LANDHIT",
-                        p1.velocity_x,
-                        p1.velocity_y,
-                        p2.velocity_x,
-                        p2.velocity_y,
-                    )
-
     def get_player1_projectile_speed_multiplier(self):
         mult = 1.0
         for p in self.player1_powerups:
@@ -180,8 +112,6 @@ class GameEngine:
             if p == "projectile_speed_50":
                 mult *= 1.5
         return mult
-
-    """Centralized game logic and state management."""
 
     def __init__(self):
         """Initialize the game engine with all objects."""
@@ -203,12 +133,8 @@ class GameEngine:
         # Scoring system
         self.red_player_score = 0
         self.purple_player_score = 0
-        self.red_circle_overlap_timer = (
-            0  # Frames blue square has been fully inside red circle
-        )
-        self.purple_circle_overlap_timer = (
-            0  # Frames blue square has been fully inside purple circle
-        )
+        self.red_circle_overlap_timer = 0
+        self.purple_circle_overlap_timer = 0
 
         # Hit Points system
         self.red_player_hp = INITIAL_HIT_POINTS
@@ -262,6 +188,16 @@ class GameEngine:
         self.player1_is_accelerating = False  # Track acceleration state
         self.player2_is_accelerating = False  # Track acceleration state
         self.engine_fade_speed = 0.02  # Volume change per frame (0.02 = slower fade for more gradual engine sound)
+
+        # Performance optimization system for fullscreen mode
+        self.frame_count = 0
+        self.frame_skip_counter = 0
+        self.target_fps = 60
+        self.performance_mode = False  # Automatically enabled in challenging scenarios
+        self.last_frame_time = 0
+        self.frame_times = []  # Rolling window of frame times for FPS calculation
+        self.visibility_cache = {}  # Cache for visibility calculations
+        self.visibility_cache_frame = 0  # Frame number when cache was last updated
 
     def set_gamepad_manager(self, gamepad_manager):
         """Set the gamepad manager reference."""
@@ -491,10 +427,35 @@ class GameEngine:
             self.set_gamepad_manager(self._gamepad_manager)
         self.apply_powerup_effects()
 
-    """Centralized game logic and state management."""
-
     def update_game_state(self):
         """Update all game objects - called every frame."""
+        # Update performance metrics
+        self._update_performance_metrics()
+
+        # Performance optimization: early exit conditions
+        self._frame_skip_counter = getattr(self, "_frame_skip_counter", 0)
+
+        # Skip expensive calculations every few frames when running above target FPS
+        # This prevents unnecessary CPU usage while maintaining smooth gameplay
+        if hasattr(self, "_last_frame_time"):
+            frame_time = time.time() - self._last_frame_time
+            if (
+                frame_time < FRAME_TIME_MS / 1000.0 * 0.8
+            ):  # Running 20% faster than target
+                self._frame_skip_counter += 1
+                if (
+                    self._frame_skip_counter % 3 == 0
+                ):  # Skip some updates every 3rd frame
+                    # Still update critical objects but skip some expensive calculations
+                    self._handle_input()
+                    self.red_dot.update_physics()
+                    if self.purple_dot is not None:
+                        self.purple_dot.update_physics()
+                    self._last_frame_time = time.time()
+                    return
+
+        self._last_frame_time = time.time()
+
         self._handle_input()
         self._update_physics()
         self._handle_collisions()
@@ -503,6 +464,7 @@ class GameEngine:
         self.update_score_pulse()  # Update score pulse effects
         self.update_circle_pulse()  # Update circle pulse effects
         self._update_engine_sounds()  # Update engine sound effects
+        self._update_performance_metrics()  # Update performance metrics
 
     def _handle_input(self):
         """Process input for both players."""
@@ -521,7 +483,6 @@ class GameEngine:
         if gamepad_controlling_player1:
             # Use gamepad input for Player 1
             gamepad1_input = self._gamepad_manager.get_gamepad_input(GAMEPAD_1_INDEX)
-            # print(f"[DEBUG] Player 1 gamepad input: {gamepad1_input}")  # Debug print
             max_speed = self.get_player1_effective_top_speed()
             self.red_dot.acceleration_x = (
                 gamepad1_input["left_stick_x"] * ANALOG_STICK_MULTIPLIER
@@ -586,7 +547,6 @@ class GameEngine:
                 gamepad2_input = self._gamepad_manager.get_gamepad_input(
                     GAMEPAD_2_INDEX
                 )
-                # print(f"[DEBUG] Player 2 gamepad input: {gamepad2_input}")  # Debug print
                 max_speed2 = self.get_player2_effective_top_speed()
                 self.purple_dot.acceleration_x = (
                     gamepad2_input["left_stick_x"] * ANALOG_STICK_MULTIPLIER
@@ -653,15 +613,24 @@ class GameEngine:
         if self.purple_dot is not None:
             self.black_hole.apply_gravity_to_object(self.purple_dot)
 
-        # Update projectile physics and apply gravity to each projectile
-        for projectile in self.projectiles[
-            :
-        ]:  # Use slice copy to safely modify during iteration
-            # Apply gravitational forces to projectiles
-            self._apply_gravitational_forces_to_projectile(projectile)
+        # Update projectile physics and apply gravity (optimized)
+        active_projectiles = []
+        skip_expensive = self._should_skip_expensive_operations()
+
+        for projectile in self.projectiles:
+            # Skip gravitational calculations on some projectiles in performance mode
+            if not (skip_expensive and len(active_projectiles) % 3 == 0):
+                self._apply_gravitational_forces_to_projectile(projectile)
+
             projectile.update_physics()
-            if not projectile.is_active:
-                self.projectiles.remove(projectile)
+            if projectile.is_active:
+                active_projectiles.append(projectile)
+
+        # Replace the list with only active projectiles (more efficient than removing during iteration)
+        self.projectiles = active_projectiles
+
+        # Optimize projectile count for performance
+        self._optimize_projectile_count()
 
     def _handle_collisions(self):
         """Check and resolve collisions between objects."""
@@ -723,7 +692,7 @@ class GameEngine:
                         self._damage_player("purple", "projectile")
 
         # Projectile vs projectile collisions
-        self._handle_projectile_collisions()
+        self._handle_projectile_collisions_optimized()
 
         # Player vs player collision
         if self.purple_dot is not None:
@@ -995,13 +964,11 @@ class GameEngine:
             self.red_player_hp -= HIT_POINT_DAMAGE
             self.red_dot_collision_cooldown = self.collision_cooldown_frames
             self.red_dot.trigger_hp_damage_pulse()  # Trigger yellow pulse effect
-            # print(f"Red player hit by {damage_source}! HP: {self.red_player_hp}")
         elif player == "purple" and self.purple_dot_collision_cooldown <= 0:
             self.purple_player_hp -= HIT_POINT_DAMAGE
             self.purple_dot_collision_cooldown = self.collision_cooldown_frames
             if self.purple_dot is not None:
                 self.purple_dot.trigger_hp_damage_pulse()  # Trigger yellow pulse effect
-            # print(f"Purple player hit by {damage_source}! HP: {self.purple_player_hp}")
 
     def _update_hit_points(self):
         """Update hit point system and check for boundary collisions."""
@@ -1027,8 +994,6 @@ class GameEngine:
             self.purple_player_score += 1  # HP depletion = 1 point
             self.trigger_score_pulse(2)  # Trigger purple player score pulse
             self._reset_player_hp()
-            # print(
-            #     f"Purple player scores 1 point from red HP depletion! Score: {self.purple_player_score}")
         elif self.purple_player_hp <= 0:
             # Play selfdestruct sound for purple player death
             try:
@@ -1041,8 +1006,6 @@ class GameEngine:
             self.red_player_score += 1  # HP depletion = 1 point
             self.trigger_score_pulse(1)  # Trigger red player score pulse
             self._reset_player_hp()
-            # print(
-            #     f"Red player scores 1 point from purple HP depletion! Score: {self.red_player_score}")
 
     def _check_boundary_collisions(self):
         """Check if players hit the elliptical boundary and apply damage."""
@@ -1155,8 +1118,7 @@ class GameEngine:
             self.red_player_score += 2  # Goal = 2 points
             self.trigger_circle_pulse("red")  # Trigger red circle pulse
             self._respawn_blue_square()
-            self.projectiles.clear()  # Remove all projectiles after a goal
-            self.red_circle_overlap_timer = 0
+            self.projectiles.clear()  # Remove all projectiles after a goal            self.red_circle_overlap_timer = 0
             # Play goal scored sound effect
             try:
                 import builtins
@@ -1165,25 +1127,6 @@ class GameEngine:
                     builtins.SFX_ENEMYALERT.play()
             except Exception:
                 pass
-            # print(
-            #     f"Red player scores 2 points for a goal! Total: {self.red_player_score}")
-
-        if self.purple_circle_overlap_timer >= SCORE_OVERLAP_FRAMES:
-            self.purple_player_score += 2  # Goal = 2 points
-            self.trigger_circle_pulse("purple")  # Trigger purple circle pulse
-            self._respawn_blue_square()
-            self.projectiles.clear()  # Remove all projectiles after a goal
-            self.purple_circle_overlap_timer = 0
-            # Play goal scored sound effect
-            try:
-                import builtins
-
-                if hasattr(builtins, "SFX_ENEMYALERT") and builtins.SFX_ENEMYALERT:
-                    builtins.SFX_ENEMYALERT.play()
-            except Exception:
-                pass
-            # print(
-            #     f"Purple player scores 2 points for a goal! Total: {self.purple_player_score}")
 
     def _respawn_blue_square(self):
         """Respawn the blue square at the center of the grid."""
@@ -1276,42 +1219,6 @@ class GameEngine:
     def get_player2_rate_limiter_progress(self):
         """Get Player 2's rate limiter progress for UI display."""
         return self.player2_rate_limiter.get_progress()
-
-    def get_player1_effective_top_speed(self):
-        base = MAX_SPEED
-        for p in self.player1_powerups:
-            if p == "top_speed_50":
-                base *= 1.5
-        return base
-
-    def get_player2_effective_top_speed(self):
-        base = MAX_SPEED
-        for p in self.player2_powerups:
-            if p == "top_speed_50":
-                base *= 1.5
-        return base
-
-    def get_player1_projectile_radius(self):
-        base = PROJECTILE_RADIUS
-        # Apply 50% increase for each 'projectile_size_50' powerup
-        for p in self.player1_powerups:
-            if p == "double_projectile_radius":
-                base *= 2
-        for p in self.player1_powerups:
-            if p == "projectile_size_50":
-                base *= 1.5
-        return base
-
-    def get_player2_projectile_radius(self):
-        base = PROJECTILE_RADIUS
-        # Apply 50% increase for each 'projectile_size_50' powerup
-        for p in self.player2_powerups:
-            if p == "double_projectile_radius":
-                base *= 2
-        for p in self.player2_powerups:
-            if p == "projectile_size_50":
-                base *= 1.5
-        return base
 
     def get_player1_projectiles_per_sec(self):
         base = (
@@ -1446,3 +1353,270 @@ class GameEngine:
             self.player2_is_accelerating = False
         except Exception:
             pass
+
+    def _handle_projectile_collisions_optimized(self):
+        """Optimized projectile collision detection using spatial partitioning."""
+        from physics import PhysicsEngine
+
+        projectiles = [p for p in self.projectiles if p.is_active]
+        n = len(projectiles)
+
+        # Early exit for low projectile counts where O(n²) is acceptable
+        if n <= 8:  # Reduced threshold for better performance
+            return self._handle_projectile_collisions_simple(projectiles)
+
+        # Use dynamic cell size based on performance
+        cell_size = self._get_dynamic_cell_size()
+        cell_map = {}
+
+        # Assign projectiles to cells
+        for i, projectile in enumerate(projectiles):
+            cell_x = int(projectile.x // cell_size)
+            cell_y = int(projectile.y // cell_size)
+            cell_key = (cell_x, cell_y)
+
+            if cell_key not in cell_map:
+                cell_map[cell_key] = []
+            cell_map[cell_key].append((i, projectile))
+
+        # Check collisions only within and between adjacent cells
+        checked_pairs = set()
+
+        # In performance mode, reduce the search radius
+        search_radius = 1 if not self.performance_mode else 0
+
+        for cell_key, cell_projectiles in cell_map.items():
+            cell_x, cell_y = cell_key
+
+            # Check within current cell and adjacent cells
+            for dx in range(-search_radius, search_radius + 1):
+                for dy in range(-search_radius, search_radius + 1):
+                    adjacent_key = (cell_x + dx, cell_y + dy)
+                    if adjacent_key in cell_map:
+                        adjacent_projectiles = cell_map[adjacent_key]
+
+                        # Check collisions between projectiles in these cells
+                        for i1, p1 in cell_projectiles:
+                            for i2, p2 in adjacent_projectiles:
+                                if i1 >= i2:  # Avoid duplicate checks
+                                    continue
+
+                                pair_key = (min(i1, i2), max(i1, i2))
+                                if pair_key in checked_pairs:
+                                    continue
+                                checked_pairs.add(pair_key)
+
+                                self._check_projectile_pair_collision(p1, p2)
+
+    def _handle_projectile_collisions_simple(self, projectiles):
+        """Simple O(n²) collision detection for small projectile counts."""
+        from physics import PhysicsEngine
+
+        n = len(projectiles)
+        for i in range(n):
+            p1 = projectiles[i]
+            for j in range(i + 1, n):
+                p2 = projectiles[j]
+                self._check_projectile_pair_collision(p1, p2)
+
+    def _check_projectile_pair_collision(self, p1, p2):
+        """Check collision between two specific projectiles."""
+        from physics import PhysicsEngine
+
+        # Prevent interaction if both projectiles were just launched and are still overlapping
+        if getattr(p1, "just_launched", False) and getattr(p2, "just_launched", False):
+            dx = p2.x - p1.x
+            dy = p2.y - p1.y
+            dist_sq = dx * dx + dy * dy
+            min_dist = p1.radius + p2.radius
+            if dist_sq < min_dist * min_dist:
+                return  # Still grouped, skip collision
+            else:
+                # Once separated, mark as no longer just launched
+                p1.just_launched = False
+                p2.just_launched = False
+
+        # Check for collision (circle-circle)
+        dx = p2.x - p1.x
+        dy = p2.y - p1.y
+        dist_sq = dx * dx + dy * dy
+        min_dist = p1.radius + p2.radius
+
+        if dist_sq < min_dist * min_dist:
+            dist = math.sqrt(dist_sq) if dist_sq > 0 else 1e-6
+            # Normal vector
+            nx = dx / dist
+            ny = dy / dist
+            # Move projectiles apart to prevent overlap
+            overlap = min_dist - dist
+            p1.x -= nx * (overlap / 2)
+            p1.y -= ny * (overlap / 2)
+            p2.x += nx * (overlap / 2)
+            p2.y += ny * (overlap / 2)
+            # Apply collision response
+            v1x, v1y, v2x, v2y = PhysicsEngine.apply_collision_response(
+                p1.velocity_x,
+                p1.velocity_y,
+                p1.mass,
+                p2.velocity_x,
+                p2.velocity_y,
+                p2.mass,
+                nx,
+                ny,
+            )
+            p1.velocity_x, p1.velocity_y = v1x, v1y
+            p2.velocity_x, p2.velocity_y = v2x, v2y
+
+            # Play collision sound with volume based on relative velocities
+            self._play_collision_sound(
+                "SFX_LANDHIT",
+                p1.velocity_x,
+                p1.velocity_y,
+                p2.velocity_x,
+                p2.velocity_y,
+            )
+
+    def _update_performance_metrics(self):
+        """Update performance metrics and adjust settings automatically."""
+        import time
+
+        current_time = time.time()
+        if hasattr(self, "_last_perf_time"):
+            frame_time = current_time - self._last_perf_time
+            self.frame_times.append(frame_time)
+
+            # Keep only the last 30 frame times for rolling average
+            if len(self.frame_times) > 30:
+                self.frame_times.pop(0)
+
+            # Calculate average FPS
+            if len(self.frame_times) >= 10:
+                avg_frame_time = sum(self.frame_times) / len(self.frame_times)
+                current_fps = 1.0 / avg_frame_time if avg_frame_time > 0 else 60
+
+                # Enable performance mode if FPS drops below 45
+                if current_fps < 45 and not self.performance_mode:
+                    self.performance_mode = True
+                    print(f"Performance mode enabled - FPS: {current_fps:.1f}")
+
+                # Disable performance mode if FPS is consistently above 55
+                elif current_fps > 55 and self.performance_mode:
+                    self.performance_mode = False
+                    print(f"Performance mode disabled - FPS: {current_fps:.1f}")
+
+        self._last_perf_time = current_time
+
+    def _get_dynamic_cell_size(self):
+        """Get dynamic cell size for spatial partitioning based on performance."""
+        base_cell_size = 100
+
+        # Increase cell size in performance mode to reduce collision checks
+        if self.performance_mode:
+            return base_cell_size * 1.5
+        else:
+            # Adjust based on projectile count
+            projectile_count = len(self.projectiles)
+            if projectile_count > 30:
+                return base_cell_size * 1.3
+            elif projectile_count > 20:
+                return base_cell_size * 1.2
+            else:
+                return base_cell_size
+
+    def _optimize_projectile_count(self):
+        """Optimize projectile count for performance, especially in fullscreen mode."""
+        max_projectiles = PROJECTILE_MAX_COUNT
+
+        # In performance mode, be more aggressive about limiting projectiles
+        if self.performance_mode:
+            max_projectiles = min(30, PROJECTILE_MAX_COUNT)
+
+        # If we have too many projectiles, remove the oldest ones
+        if len(self.projectiles) > max_projectiles:
+            # Keep the most recently created projectiles
+            self.projectiles = self.projectiles[-max_projectiles:]
+
+    def _should_skip_expensive_operations(self):
+        """Determine if expensive operations should be skipped this frame."""
+        # Skip expensive operations in performance mode on alternating frames
+        if self.performance_mode:
+            self.frame_count = getattr(self, "frame_count", 0) + 1
+
+            # In aggressive mode (fullscreen), skip even more operations
+            if hasattr(self, "_aggressive_mode") and self._aggressive_mode:
+                return self.frame_count % 3 == 0  # Skip 2 out of 3 frames
+            else:
+                return self.frame_count % 2 == 0  # Skip every other frame
+        return False
+
+    def _get_performance_info(self):
+        """Get current performance information."""
+        if hasattr(self, "frame_times") and len(self.frame_times) > 0:
+            avg_frame_time = sum(self.frame_times) / len(self.frame_times)
+            current_fps = 1.0 / avg_frame_time if avg_frame_time > 0 else 60
+            return {
+                "fps": current_fps,
+                "frame_time_ms": avg_frame_time * 1000,
+                "performance_mode": self.performance_mode,
+                "projectile_count": len(self.projectiles),
+                "cell_size": self._get_dynamic_cell_size(),
+            }
+        return {
+            "fps": 60,
+            "frame_time_ms": 16.67,
+            "performance_mode": False,
+            "projectile_count": 0,
+            "cell_size": 100,
+        }
+
+    def _enable_fullscreen_mode(self):
+        """Enable aggressive optimizations for fullscreen mode."""
+        if not hasattr(self, "_fullscreen_mode"):
+            self._fullscreen_mode = True
+
+            # Store original settings
+            self._original_projectile_max = PROJECTILE_MAX_COUNT
+            self._original_frame_skip_threshold = getattr(
+                self, "_frame_skip_threshold", 4
+            )
+
+            # Apply very aggressive fullscreen optimizations
+            import config
+
+            config.PROJECTILE_MAX_COUNT = min(
+                15, PROJECTILE_MAX_COUNT
+            )  # Very aggressive limit
+            self._frame_skip_threshold = 1  # Skip expensive operations more often
+
+            # Force performance mode on and be more aggressive
+            self.performance_mode = True
+            self._aggressive_mode = True  # Extra aggressive optimizations
+
+            # Optimize gamepad manager for fullscreen
+            if hasattr(self, "_gamepad_manager") and self._gamepad_manager:
+                self._gamepad_manager.set_fullscreen_mode(True)
+
+            print(
+                f"Fullscreen mode enabled: projectile limit {config.PROJECTILE_MAX_COUNT}, ultra-aggressive performance mode"
+            )
+
+    def _disable_fullscreen_mode(self):
+        """Restore normal settings when leaving fullscreen mode."""
+        if hasattr(self, "_fullscreen_mode") and self._fullscreen_mode:
+            self._fullscreen_mode = False
+
+            # Restore original settings
+            import config
+
+            config.PROJECTILE_MAX_COUNT = self._original_projectile_max
+            self._frame_skip_threshold = self._original_frame_skip_threshold
+            self._aggressive_mode = False
+
+            # Optimize gamepad manager for windowed mode
+            if hasattr(self, "_gamepad_manager") and self._gamepad_manager:
+                self._gamepad_manager.set_fullscreen_mode(False)
+
+            # Let automatic performance mode detection take over
+            # (don't force disable performance_mode, let FPS determine it)
+
+            print("Fullscreen mode disabled: restored normal settings")

@@ -10,6 +10,30 @@ from config import *
 class PhysicsEngine:
     """Handles all physics calculations for the topographical plane simulation."""
 
+    # --- Performance optimization: Cached math functions ---
+    _sqrt_cache = {}  # Cache for expensive sqrt operations
+    _cache_size_limit = 1000  # Limit cache size to prevent memory bloat
+
+    @staticmethod
+    def _cached_sqrt(value):
+        """Cache expensive sqrt calculations for common distances."""
+        if value < 0:
+            return 0
+
+        # Round to nearest 0.1 for caching
+        cache_key = round(value, 1)
+
+        if cache_key in PhysicsEngine._sqrt_cache:
+            return PhysicsEngine._sqrt_cache[cache_key]
+
+        result = math.sqrt(value)
+
+        # Limit cache size
+        if len(PhysicsEngine._sqrt_cache) < PhysicsEngine._cache_size_limit:
+            PhysicsEngine._sqrt_cache[cache_key] = result
+
+        return result
+
     @staticmethod
     def apply_momentum_physics(
         velocity_x, velocity_y, acceleration_x, acceleration_y, dt=1.0

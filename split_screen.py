@@ -79,10 +79,8 @@ class SplitScreenView(QWidget):
             # Apply the selected powerup
             loser_num = 2 if self.game_over_winner == 1 else 1
             if loser_num == 1:
-                # print(f"[DEBUG] Assigning powerup to Player 1: {powerup_key}")
                 self.game_engine.player1_powerups.append(powerup_key)
             else:
-                # print(f"[DEBUG] Assigning powerup to Player 2: {powerup_key}")
                 self.game_engine.player2_powerups.append(powerup_key)
 
             # Play powerup selection sound effect
@@ -186,7 +184,8 @@ class SplitScreenView(QWidget):
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
 
         # Initialize grid cache
-        self._init_grid_cache()
+        self._init_grid_cache()  # Initialize fullscreen tracking
+        self._is_fullscreen = False
 
     def _setup_timer(self):
         """Setup the rendering timer."""
@@ -312,7 +311,13 @@ class SplitScreenView(QWidget):
         render_pixmap = QPixmap(render_width, render_height)
         render_pixmap.fill(QColor(0, 0, 0))
         render_painter = QPainter(render_pixmap)
-        render_painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+        # Control antialiasing based on performance mode
+        if hasattr(self, "_antialiasing_enabled") and not self._antialiasing_enabled:
+            # Disable antialiasing for fullscreen performance
+            render_painter.setRenderHint(QPainter.RenderHint.Antialiasing, False)
+        else:
+            render_painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
         # Calculate view center for this player's view (in render target coordinates)
         view_center_x = render_width / 2
@@ -835,3 +840,104 @@ class SplitScreenView(QWidget):
         # Draw FPS counter at the bottom center of the window
         if SHOW_FPS_COUNTER:
             self._draw_fps_counter_bottom_center(painter)
+
+    def _optimize_for_fullscreen(self):
+        """Apply aggressive optimizations specifically for fullscreen mode."""
+        if not hasattr(self, "_fullscreen_optimized"):
+            self._fullscreen_optimized = True
+
+            # Reduce grid detail in fullscreen
+            if hasattr(self, "_original_grid_spacing"):
+                return  # Already optimized
+
+            # Store original values
+            from config import GRID_SPACING, MAX_RENDER_WIDTH, MAX_RENDER_HEIGHT
+
+            self._original_grid_spacing = GRID_SPACING
+            self._original_max_render_width = MAX_RENDER_WIDTH
+            self._original_max_render_height = MAX_RENDER_HEIGHT
+
+            # Apply aggressive optimizations
+            import config
+
+            config.GRID_SPACING = GRID_SPACING * 3  # Triple spacing = 1/9 grid lines
+            # Reduce render resolution cap further for fullscreen
+            config.MAX_RENDER_WIDTH = min(800, MAX_RENDER_WIDTH)  # Cap at 800px width
+            config.MAX_RENDER_HEIGHT = min(
+                600, MAX_RENDER_HEIGHT
+            )  # Cap at 600px height
+
+            # Disable antialiasing for performance
+            self._enable_antialiasing_optimization(False)
+
+            # Force grid cache invalidation
+            self._grid_cache = [None, None]
+            self._grid_cache_params = [None, None]
+
+            # Clear rendering caches
+            from rendering import Renderer
+
+            Renderer.clear_caches()
+
+            print(
+                "Applied fullscreen optimizations: reduced grid density, lowered resolution cap, disabled antialiasing"
+            )
+
+    def _restore_windowed_settings(self):
+        """Restore normal settings for windowed mode."""
+        if hasattr(self, "_fullscreen_optimized") and self._fullscreen_optimized:
+            self._fullscreen_optimized = False
+
+            # Restore original settings
+            if hasattr(self, "_original_grid_spacing"):
+                import config
+
+                config.GRID_SPACING = self._original_grid_spacing
+                config.MAX_RENDER_WIDTH = self._original_max_render_width
+                config.MAX_RENDER_HEIGHT = self._original_max_render_height
+
+                # Re-enable antialiasing
+                self._enable_antialiasing_optimization(True)
+
+                # Force grid cache invalidation
+                self._grid_cache = [None, None]
+                self._grid_cache_params = [None, None]
+
+                # Clear rendering caches
+                from rendering import Renderer
+
+                Renderer.clear_caches()
+
+                print(
+                    "Restored windowed settings: normal grid spacing, full resolution, enabled antialiasing"
+                )
+
+    def changeEvent(self, event):
+        """Handle window state changes (fullscreen/windowed)."""
+        from PyQt6.QtCore import QEvent, Qt
+
+        if event.type() == QEvent.Type.WindowStateChange:
+            new_fullscreen = bool(self.windowState() & Qt.WindowState.WindowFullScreen)
+
+            if new_fullscreen != self._is_fullscreen:
+                self._is_fullscreen = new_fullscreen
+
+                if new_fullscreen:
+                    print("Switching to fullscreen mode - applying optimizations")
+                    self._optimize_for_fullscreen()
+                    # Also notify game engine
+                    if hasattr(self.game_engine, "_enable_fullscreen_mode"):
+                        self.game_engine._enable_fullscreen_mode()
+                else:
+                    print("Switching to windowed mode - restoring normal settings")
+                    self._restore_windowed_settings()
+                    # Also notify game engine
+                    if hasattr(self.game_engine, "_disable_fullscreen_mode"):
+                        self.game_engine._disable_fullscreen_mode()
+
+        super().changeEvent(event)
+
+    def _enable_antialiasing_optimization(self, enabled):
+        """Enable/disable antialiasing in fullscreen mode."""
+        self._antialiasing_enabled = enabled
+        print(f"Antialiasing {'enabled' if enabled else 'disabled'} for performance")

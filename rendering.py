@@ -121,12 +121,66 @@ class Renderer:
     ):
         """
         Draw the vignette gradient effect at the grid boundary using a stretched radial gradient.
+        Optimized with caching for fullscreen performance.
 
         Args:
             painter: QPainter instance
             camera_x, camera_y: Camera position in world coordinates
             view_center_x, view_center_y: Center coordinates of the current view
         """
+        # Check if we can use cached vignette
+        cache_key = (
+            int(view_center_x),
+            int(view_center_y),
+            int(camera_x / 10),
+            int(camera_y / 10),
+        )
+
+        if not hasattr(Renderer, "_vignette_cache"):
+            Renderer._vignette_cache = {}
+            Renderer._vignette_cache_size = 0
+
+        # Limit cache size to prevent memory bloat
+        if cache_key in Renderer._vignette_cache:
+            cached_pixmap = Renderer._vignette_cache[cache_key]
+            painter.drawPixmap(0, 0, cached_pixmap)
+            return
+
+        # Only cache if we haven't hit the limit
+        should_cache = Renderer._vignette_cache_size < 4  # Max 4 cached vignettes
+
+        if should_cache:
+            # Create offscreen rendering
+            from PyQt6.QtGui import QPixmap
+
+            cache_pixmap = QPixmap(int(view_center_x * 2), int(view_center_y * 2))
+            cache_pixmap.fill(QColor(0, 0, 0, 0))  # Transparent background
+            cache_painter = QPainter(cache_pixmap)
+            cache_painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+            # Render to cache
+            Renderer._render_vignette_to_painter(
+                cache_painter, camera_x, camera_y, view_center_x, view_center_y
+            )
+            cache_painter.end()
+
+            # Store in cache
+            Renderer._vignette_cache[cache_key] = cache_pixmap
+            Renderer._vignette_cache_size += 1
+
+            # Draw from cache
+            painter.drawPixmap(0, 0, cache_pixmap)
+        else:
+            # Render directly (fallback)
+            Renderer._render_vignette_to_painter(
+                painter, camera_x, camera_y, view_center_x, view_center_y
+            )
+
+    @staticmethod
+    def _render_vignette_to_painter(
+        painter, camera_x, camera_y, view_center_x, view_center_y
+    ):
+        """Internal method to render vignette to a specific painter."""
         # Calculate grid center position on screen (same as triangular grid)
         # The world origin (0,0) should appear at screen coordinates that account for camera offset
         world_origin_screen_x = view_center_x - camera_x
@@ -1022,3 +1076,39 @@ class Renderer:
 
         finally:
             painter.restore()
+
+    # --- Performance optimization: Object visibility culling ---
+    _visibility_cache = {}  # Cache for visibility calculations
+    _last_camera_pos = (None, None)
+
+    @staticmethod
+    def _is_object_visible_cached(
+        obj_x, obj_y, obj_radius, camera_x, camera_y, view_width, view_height
+    ):
+        """Cached visibility check to avoid redundant calculations."""
+        # Use simple bounds check with small margin
+        margin = obj_radius + 10  # Small buffer for edge cases
+        view_left = camera_x - view_width // 2
+        view_right = camera_x + view_width // 2
+        view_top = camera_y - view_height // 2
+        view_bottom = camera_y + view_height // 2
+
+        return (
+            obj_x + margin >= view_left
+            and obj_x - margin <= view_right
+            and obj_y + margin >= view_top
+            and obj_y - margin <= view_bottom
+        )
+
+    @staticmethod
+    def clear_caches():
+        """Clear all rendering caches to free memory and force regeneration."""
+        if hasattr(Renderer, "_cached_grid_points"):
+            Renderer._cached_grid_points = None
+            Renderer._cached_grid_params = None
+
+        if hasattr(Renderer, "_vignette_cache"):
+            Renderer._vignette_cache.clear()
+            Renderer._vignette_cache_size = 0
+
+        print("Rendering caches cleared")
