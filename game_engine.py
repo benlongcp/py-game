@@ -95,10 +95,33 @@ class GameEngine:
                     obj2_vel_y,
                     base_volume=base_volume,
                 )
-                sound.set_volume(volume)
+                # Apply master volume scaling
+                final_volume = self._apply_master_volume(volume)
+                sound.set_volume(final_volume)
                 sound.play()
             else:
                 pass  # Sound not found or None - silent fail
+        except Exception:
+            pass  # Silent fail for sound errors
+
+    def _apply_master_volume(self, volume):
+        """Apply master volume scaling to a sound volume."""
+        try:
+            from volume_slider import get_master_volume
+            master_volume = get_master_volume()
+            return volume * master_volume
+        except ImportError:
+            return volume  # Fallback if volume slider not available
+
+    def _play_sound_with_volume(self, sound_name, volume=1.0):
+        """Play a sound effect with master volume applied."""
+        try:
+            import builtins
+            if hasattr(builtins, sound_name) and getattr(builtins, sound_name):
+                sound = getattr(builtins, sound_name)
+                final_volume = self._apply_master_volume(volume)
+                sound.set_volume(final_volume)
+                sound.play()
         except Exception:
             pass  # Silent fail for sound errors
 
@@ -850,13 +873,7 @@ class GameEngine:
                 new_projectile.damage = self.get_player1_projectile_damage()
                 new_projectile.mass = self.get_player1_projectile_mass()
         # Play projectile fire sound effect
-        try:
-            import builtins
-
-            if hasattr(builtins, "SFX_LASERBLAST") and builtins.SFX_LASERBLAST:
-                builtins.SFX_LASERBLAST.play()
-        except Exception:
-            pass
+        self._play_sound_with_volume("SFX_LASERBLAST", 1.0)
         self.player1_rate_limiter.record_shot()
 
     def shoot_projectile_player2(self):
@@ -926,13 +943,7 @@ class GameEngine:
                 new_projectile.damage = self.get_player2_projectile_damage()
                 new_projectile.mass = self.get_player2_projectile_mass()
         # Play projectile fire sound effect
-        try:
-            import builtins
-
-            if hasattr(builtins, "SFX_LASERBLAST") and builtins.SFX_LASERBLAST:
-                builtins.SFX_LASERBLAST.play()
-        except Exception:
-            pass
+        self._play_sound_with_volume("SFX_LASERBLAST", 1.0)
         self.player2_rate_limiter.record_shot()
 
     def set_player1_key(self, key, pressed):
@@ -1011,25 +1022,15 @@ class GameEngine:
         # Check for HP depletion
         if self.red_player_hp <= 0:
             # Play selfdestruct sound for red player death
-            try:
-                import builtins
-
-                if hasattr(builtins, "SFX_SELFDESTRUCT") and builtins.SFX_SELFDESTRUCT:
-                    builtins.SFX_SELFDESTRUCT.play()
-            except Exception:
-                pass
+            # Play self-destruct sound for red player defeat
+            self._play_sound_with_volume("SFX_SELFDESTRUCT", 1.0)
             self.purple_player_score += 1  # HP depletion = 1 point
             self.trigger_score_pulse(2)  # Trigger purple player score pulse
             self._reset_player_hp()
         elif self.purple_player_hp <= 0:
             # Play selfdestruct sound for purple player death
-            try:
-                import builtins
-
-                if hasattr(builtins, "SFX_SELFDESTRUCT") and builtins.SFX_SELFDESTRUCT:
-                    builtins.SFX_SELFDESTRUCT.play()
-            except Exception:
-                pass
+            # Play self-destruct sound for purple player defeat
+            self._play_sound_with_volume("SFX_SELFDESTRUCT", 1.0)
             self.red_player_score += 1  # HP depletion = 1 point
             self.trigger_score_pulse(1)  # Trigger red player score pulse
             self._reset_player_hp()
@@ -1148,13 +1149,7 @@ class GameEngine:
             self.projectile_pool.clear_all()  # Remove all projectiles after a goal
             self.red_circle_overlap_timer = 0
             # Play goal scored sound effect
-            try:
-                import builtins
-
-                if hasattr(builtins, "SFX_ENEMYALERT") and builtins.SFX_ENEMYALERT:
-                    builtins.SFX_ENEMYALERT.play()
-            except Exception:
-                pass
+            self._play_sound_with_volume("SFX_ENEMYALERT", 1.0)
 
         if self.purple_circle_overlap_timer >= SCORE_OVERLAP_FRAMES:
             self.purple_player_score += 2  # Goal = 2 points
@@ -1163,13 +1158,7 @@ class GameEngine:
             self.projectile_pool.clear_all()  # Remove all projectiles after a goal
             self.purple_circle_overlap_timer = 0
             # Play goal scored sound effect
-            try:
-                import builtins
-
-                if hasattr(builtins, "SFX_ENEMYALERT") and builtins.SFX_ENEMYALERT:
-                    builtins.SFX_ENEMYALERT.play()
-            except Exception:
-                pass
+            self._play_sound_with_volume("SFX_ENEMYALERT", 1.0)
 
     def _respawn_blue_square(self):
         """Respawn the blue square at the center of the grid."""
@@ -1319,9 +1308,9 @@ class GameEngine:
                     )  # -1 = infinite loop
 
                 if self.player1_engine_sound_channel:
-                    self.player1_engine_sound_channel.set_volume(
-                        self.player1_engine_volume
-                    )
+                    # Apply master volume to engine sound
+                    final_volume = self._apply_master_volume(self.player1_engine_volume)
+                    self.player1_engine_sound_channel.set_volume(final_volume)
             else:
                 # Stop the engine sound
                 if (
@@ -1356,9 +1345,9 @@ class GameEngine:
                         )  # -1 = infinite loop
 
                     if self.player2_engine_sound_channel:
-                        self.player2_engine_sound_channel.set_volume(
-                            self.player2_engine_volume
-                        )
+                        # Apply master volume to engine sound
+                        final_volume = self._apply_master_volume(self.player2_engine_volume)
+                        self.player2_engine_sound_channel.set_volume(final_volume)
                 else:
                     # Stop the engine sound
                     if (

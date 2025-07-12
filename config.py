@@ -216,3 +216,18 @@ RATE_LIMITER_COLOR_NORMAL = (0, 255, 0)  # Green when available
 RATE_LIMITER_COLOR_WARNING = (255, 255, 0)  # Yellow when approaching limit
 RATE_LIMITER_COLOR_COOLDOWN = (255, 0, 0)  # Red during cooldown
 RATE_LIMITER_BACKGROUND_COLOR = (64, 64, 64)  # Dark gray background ring
+
+# Volume control settings
+MASTER_VOLUME = 0.5  # Default master volume (0.0 to 1.0) - starts at 50%
+VOLUME_SLIDER_WIDTH = 100  # Width of the volume slider
+VOLUME_SLIDER_HEIGHT = 20  # Height of the volume slider
+VOLUME_SLIDER_MARGIN = 20  # Distance from screen edges
+VOLUME_SLIDER_BACKGROUND_COLOR = (60, 60, 60)  # Dark gray background
+VOLUME_SLIDER_HANDLE_COLOR = (200, 200, 200)  # Light gray handle
+VOLUME_SLIDER_FILL_COLOR = (100, 150, 255)  # Blue fill color
+VOLUME_SLIDER_BORDER_COLOR = (40, 40, 40)  # Darker border
+VOLUME_ICON_SIZE = 16  # Size of the volume icon
+
+# Volume keyboard controls
+VOLUME_STEP = 0.1  # Volume change per key press (+ and - keys)
+VOLUME_DISPLAY_TIME = 3000  # How long to show slider after keyboard volume change (ms)

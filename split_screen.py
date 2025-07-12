@@ -615,6 +615,25 @@ class SplitScreenView(QWidget):
         """Handle key press events for both players (fallback when gamepad not connected)."""
         key = event.key()
 
+        # Volume controls (+ and - keys)
+        from volume_slider import get_master_volume_slider
+        volume_slider = get_master_volume_slider()
+        
+        if key == Qt.Key.Key_Plus or key == Qt.Key.Key_Equal:  # + key (shift + = or numpad +)
+            current_volume = volume_slider.get_volume()
+            new_volume = min(1.0, current_volume + VOLUME_STEP)
+            volume_slider.set_volume(new_volume)
+            volume_slider.show_temporarily()
+            self.update()  # Trigger repaint to show slider
+            return
+        elif key == Qt.Key.Key_Minus:  # - key
+            current_volume = volume_slider.get_volume()
+            new_volume = max(0.0, current_volume - VOLUME_STEP)
+            volume_slider.set_volume(new_volume)
+            volume_slider.show_temporarily()
+            self.update()  # Trigger repaint to show slider
+            return
+
         # Player 1 controls (Arrow keys + Enter) - only if gamepad 1 is not connected
         if not (
             GAMEPAD_ENABLED
@@ -664,6 +683,57 @@ class SplitScreenView(QWidget):
         ):
             if key in [Qt.Key.Key_A, Qt.Key.Key_D, Qt.Key.Key_W, Qt.Key.Key_S]:
                 self.game_engine.set_player2_key(key, False)
+
+    def mousePressEvent(self, event):
+        """Handle mouse press events for volume slider interaction."""
+        from volume_slider import get_master_volume_slider
+
+        volume_slider = get_master_volume_slider()
+
+        # Convert event position to QPoint
+        mouse_pos = event.pos()
+
+        # Check if volume slider handled the event
+        if volume_slider.handle_mouse_press(mouse_pos, self.width(), self.height()):
+            event.accept()
+            self.update()  # Trigger repaint
+            return
+
+        # Let the event propagate if not handled
+        super().mousePressEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        """Handle mouse release events for volume slider interaction."""
+        from volume_slider import get_master_volume_slider
+
+        volume_slider = get_master_volume_slider()
+
+        # Check if volume slider handled the event
+        if volume_slider.handle_mouse_release():
+            event.accept()
+            self.update()  # Trigger repaint
+            return
+
+        # Let the event propagate if not handled
+        super().mouseReleaseEvent(event)
+
+    def mouseMoveEvent(self, event):
+        """Handle mouse move events for volume slider interaction."""
+        from volume_slider import get_master_volume_slider
+
+        volume_slider = get_master_volume_slider()
+
+        # Convert event position to QPoint
+        mouse_pos = event.pos()
+
+        # Check if volume slider handled the event
+        if volume_slider.handle_mouse_move(mouse_pos, self.width(), self.height()):
+            event.accept()
+            self.update()  # Trigger repaint
+            return
+
+        # Let the event propagate if not handled
+        super().mouseMoveEvent(event)
 
     def _update_fps(self):
         """Update FPS counter."""
@@ -837,9 +907,12 @@ class SplitScreenView(QWidget):
             overlay_color=final_color1,
         )
 
-        # Draw FPS counter at the bottom center of the window
+        # Draw FPS counter at the bottom left of the window
         if SHOW_FPS_COUNTER:
             self._draw_fps_counter_bottom_center(painter)
+
+        # Draw volume slider at the bottom right of the window
+        self._draw_volume_slider(painter)
 
     def _optimize_for_fullscreen(self):
         """Apply aggressive optimizations specifically for fullscreen mode."""
@@ -941,3 +1014,25 @@ class SplitScreenView(QWidget):
         """Enable/disable antialiasing in fullscreen mode."""
         self._antialiasing_enabled = enabled
         print(f"Antialiasing {'enabled' if enabled else 'disabled'} for performance")
+
+    def _draw_volume_slider(self, painter):
+        """Draw volume slider at the bottom right of the window."""
+        from volume_slider import get_master_volume_slider
+
+        painter.save()
+        try:
+            # Reset clipping to draw on the full window
+            painter.setClipping(False)
+
+            # Get the volume slider and draw it
+            volume_slider = get_master_volume_slider()
+
+            # Position it on the bottom right, opposite to FPS counter
+            window_width = self.width()
+            window_height = self.height()
+
+            # Draw the volume slider
+            volume_slider.draw(painter, window_width, window_height)
+
+        finally:
+            painter.restore()
