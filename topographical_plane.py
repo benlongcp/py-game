@@ -86,7 +86,7 @@ class TopographicalPlane(QWidget):
             painter, self.game_engine.blue_square, camera_x, camera_y
         )
         Renderer.draw_projectiles(
-            painter, self.game_engine.projectiles, camera_x, camera_y
+            painter, self.game_engine.projectile_pool.get_active_projectiles(), camera_x, camera_y
         )
 
         # Draw the dot this window is following at center

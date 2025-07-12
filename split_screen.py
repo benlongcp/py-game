@@ -396,7 +396,7 @@ class SplitScreenView(QWidget):
         )
         Renderer.draw_projectiles(
             render_painter,
-            self.game_engine.projectiles,
+            self.game_engine.projectile_pool.get_active_projectiles(),
             camera_x,
             camera_y,
             render_width,

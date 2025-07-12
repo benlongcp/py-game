@@ -62,6 +62,7 @@ PROJECTILE_MASS = 5  # Light mass for projectiles
 PROJECTILE_MAX_COUNT = (
     50  # Reduced from 120 to 50 for better performance (still allows intense gameplay)
 )
+PROJECTILE_MAX_BOUNCES = 3  # Maximum number of bounces before projectile expires
 
 # Blue square settings
 SQUARE_SIZE_MULTIPLIER = 10  # Square is 10x the size of the red dot
@@ -205,7 +206,7 @@ ANALOG_STICK_MULTIPLIER = (
 
 # Rate limiting system for projectiles
 PROJECTILE_RATE_LIMIT = 3  # Maximum projectiles per second (reduced from 5 to 3)
-PROJECTILE_RATE_WINDOW = 1.0  # Time window in seconds
+PROJECTILE_RATE_WINDOW = 2.0  # Time window in seconds
 PROJECTILE_COOLDOWN_DURATION = 2.0  # Cooldown period in seconds after rate limit hit
 
 # Rate limiter UI settings

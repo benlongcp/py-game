@@ -1,12 +1,14 @@
 """
 Rendering functions for the Topographical Plane application.
 Handles all drawing operations including the grid, objects, and effects.
+Enhanced with dirty flag caching and Level-of-Detail rendering.
 """
 
 import math
 from PyQt6.QtGui import QPainter, QPen, QBrush, QColor, QRadialGradient, QPolygonF
 from PyQt6.QtCore import QRectF, QPointF
 from config import *
+from performance_manager import get_performance_manager
 
 
 class Renderer:
@@ -15,10 +17,21 @@ class Renderer:
     @staticmethod
     def get_adaptive_grid_spacing(view_width, view_height):
         """
-        Returns an adaptive grid spacing based on the view size.
-        75% less dense for better performance (4x larger spacing = 75% fewer dots).
+        Returns an adaptive grid spacing based on the view size and LOD settings.
+        Dynamically adjusts density based on performance requirements.
         """
-        base_spacing = int(GRID_SPACING * 4.0)  # 75% less dense (quadruple the spacing)
+        # Get current performance settings (with fallback)
+        try:
+            perf_manager = get_performance_manager()
+            lod_settings = perf_manager.get_current_settings()
+            lod_multiplier = 2.0 - lod_settings.grid_density_multiplier
+        except Exception:
+            # Fallback to default if performance manager isn't available
+            lod_multiplier = 1.0
+        
+        # Base spacing with LOD multiplier
+        base_spacing = int(GRID_SPACING * 4.0 * lod_multiplier)
+        
         max_dim = max(view_width, view_height)
         if max_dim > 1600:
             return base_spacing * 2
@@ -70,50 +83,57 @@ class Renderer:
     @staticmethod
     def draw_triangular_grid(painter, camera_x, camera_y, view_center_x, view_center_y):
         """
-        Draw the triangular grid of simple dots for better performance.
+        Draw the triangular grid of simple dots with dirty flag optimization.
         Implements: disables antialiasing for grid, uses drawPoints, caches grid points.
         """
-        # Use adaptive grid spacing
+        # Get performance manager for dirty flag checking
+        perf_manager = get_performance_manager()
+        
+        # Use adaptive grid spacing with LOD
         view_width = view_center_x * 2
         view_height = view_center_y * 2
         grid_spacing = Renderer.get_adaptive_grid_spacing(view_width, view_height)
         vertical_offset = grid_spacing * math.sqrt(3) / 2
 
-        # Cache key: (camera_x, camera_y, view_center_x, view_center_y, grid_spacing, vertical_offset)
+        # Cache key with LOD settings
+        lod_settings = perf_manager.get_current_settings()
         cache_params = (
-            camera_x,
-            camera_y,
+            int(camera_x / 10) * 10,  # Quantize camera position for better caching
+            int(camera_y / 10) * 10,
             view_center_x,
             view_center_y,
             grid_spacing,
             vertical_offset,
+            lod_settings.grid_density_multiplier  # Include LOD in cache key
         )
-        if Renderer._cached_grid_params != cache_params:
+        
+        # Check if we need to regenerate cache
+        cache_invalid = (Renderer._cached_grid_params != cache_params or 
+                        perf_manager.is_cache_dirty('grid_cache'))
+        
+        if cache_invalid:
             Renderer._cached_grid_points = Renderer._compute_grid_points(
-                camera_x,
-                camera_y,
-                view_center_x,
-                view_center_y,
-                grid_spacing,
-                vertical_offset,
+                camera_x, camera_y, view_center_x, view_center_y, grid_spacing, vertical_offset
             )
             Renderer._cached_grid_params = cache_params
+            perf_manager.clear_cache_flag('grid_cache')
 
         # Set up pen for simple dots (no brush needed for drawPoints)
         painter.setPen(QPen(QColor(200, 200, 200), 1))
         from PyQt6.QtCore import Qt
-
         painter.setBrush(Qt.BrushStyle.NoBrush)
 
-        # Disable antialiasing for grid dots
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing, False)
+        # Disable antialiasing for grid dots (performance optimization)
+        if lod_settings.high_quality_rendering:
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing, False)
 
         # Draw all grid points as 1x1 dots (drawPoints is much faster)
         if Renderer._cached_grid_points:
             painter.drawPoints(Renderer._cached_grid_points)
 
-        # Re-enable antialiasing for other objects
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        # Re-enable antialiasing for other objects (if high quality)
+        if lod_settings.high_quality_rendering:
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
 
     @staticmethod
     def draw_vignette_gradient(
@@ -1099,6 +1119,67 @@ class Renderer:
             and obj_y + margin >= view_top
             and obj_y - margin <= view_bottom
         )
+
+    @staticmethod
+    def should_render_object(obj_x, obj_y, obj_radius, camera_x, camera_y, view_width, view_height):
+        """
+        Determine if an object should be rendered based on LOD and distance.
+        
+        Args:
+            obj_x, obj_y: Object position
+            obj_radius: Object radius
+            camera_x, camera_y: Camera position
+            view_width, view_height: View dimensions
+            
+        Returns:
+            bool: True if object should be rendered
+        """
+        perf_manager = get_performance_manager()
+        lod_settings = perf_manager.get_current_settings()
+        
+        # Calculate distance from camera
+        distance_to_camera = math.sqrt((obj_x - camera_x) ** 2 + (obj_y - camera_y) ** 2)
+        
+        # Base render distance (diagonal of view)
+        base_render_distance = math.sqrt(view_width ** 2 + view_height ** 2)
+        
+        # Apply LOD multiplier
+        max_render_distance = base_render_distance * lod_settings.render_distance_multiplier
+        
+        # Always render if within base view
+        if distance_to_camera <= base_render_distance:
+            return True
+        
+        # LOD-based culling for distant objects
+        if distance_to_camera > max_render_distance:
+            return False
+        
+        # Scale check based on object size and distance
+        # Larger objects are visible from farther away
+        size_factor = max(1.0, obj_radius / 10.0)  # Normalize around 10px radius
+        effective_distance = max_render_distance * size_factor
+        
+        return distance_to_camera <= effective_distance
+    
+    @staticmethod
+    def get_lod_for_distance(obj_x, obj_y, camera_x, camera_y, view_width, view_height):
+        """
+        Get appropriate LOD level for an object based on distance from camera.
+        
+        Returns:
+            str: 'high', 'medium', 'low', or 'minimal'
+        """
+        distance_to_camera = math.sqrt((obj_x - camera_x) ** 2 + (obj_y - camera_y) ** 2)
+        base_distance = math.sqrt(view_width ** 2 + view_height ** 2) / 2
+        
+        if distance_to_camera < base_distance * 0.5:
+            return 'high'
+        elif distance_to_camera < base_distance:
+            return 'medium'
+        elif distance_to_camera < base_distance * 1.5:
+            return 'low'
+        else:
+            return 'minimal'
 
     @staticmethod
     def clear_caches():

@@ -509,7 +509,7 @@ class Projectile:
 
             self.bounce_count += 1
             self.has_made_contact = True  # Bouncing counts as contact
-            if self.bounce_count >= 6:
+            if self.bounce_count >= PROJECTILE_MAX_BOUNCES:
                 self.is_active = False
         else:
             # Move to new position

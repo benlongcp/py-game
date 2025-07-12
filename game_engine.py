@@ -19,6 +19,9 @@ from objects import (
 )
 from physics import PhysicsEngine
 from rate_limiter import ProjectileRateLimiter
+from quadtree import QuadTree
+from object_pool import get_projectile_pool
+from performance_manager import get_performance_manager
 
 
 class GameEngine:
@@ -118,8 +121,10 @@ class GameEngine:
         self.red_dot = RedDot()
         self.purple_dot = None  # Will be created when second player joins
         self.blue_square = BlueSquare()
-        self.projectiles = []  # List to hold active projectiles
-
+        
+        # Use object pool for projectiles instead of direct list
+        self.projectile_pool = get_projectile_pool()
+        
         # Gravitational dots for physics effects
         self.red_gravity_dot = RedGravitationalDot()
         self.purple_gravity_dot = PurpleGravitationalDot()
@@ -127,8 +132,17 @@ class GameEngine:
 
         # Black hole for additional gravitational dynamics
         from objects import BlackHole
-
         self.black_hole = BlackHole()
+        
+        # QuadTree for optimized collision detection
+        # Cover the game area with some padding
+        from config import GRID_RADIUS_X, GRID_RADIUS_Y
+        tree_width = GRID_RADIUS_X * 2.5  # Extra padding for projectiles
+        tree_height = GRID_RADIUS_Y * 2.5
+        self.collision_quadtree = QuadTree(0, 0, tree_width, tree_height, max_objects=4, max_levels=6)
+        
+        # Performance manager for LOD and optimization
+        self.performance_manager = get_performance_manager()
 
         # Scoring system
         self.red_player_score = 0
@@ -461,7 +475,7 @@ class GameEngine:
         self._handle_collisions()
         self._update_hit_points()
         self._update_scoring()
-        self.update_score_pulse()  # Update score pulse effects
+        self.update_score_pulse  # Update score pulse effects
         self.update_circle_pulse()  # Update circle pulse effects
         self._update_engine_sounds()  # Update engine sound effects
         self._update_performance_metrics()  # Update performance metrics
@@ -597,6 +611,13 @@ class GameEngine:
 
     def _update_physics(self):
         """Update physics for all objects."""
+        # Update performance metrics
+        frame_start_time = time.time()
+        
+        # Automatically adjust LOD based on performance
+        self.performance_manager.adjust_lod()
+        current_settings = self.performance_manager.get_current_settings()
+
         self.red_dot.update_physics()
         if self.purple_dot is not None:
             self.purple_dot.update_physics()
@@ -613,24 +634,19 @@ class GameEngine:
         if self.purple_dot is not None:
             self.black_hole.apply_gravity_to_object(self.purple_dot)
 
-        # Update projectile physics and apply gravity (optimized)
-        active_projectiles = []
-        skip_expensive = self._should_skip_expensive_operations()
+        # Update projectile physics with LOD optimizations
+        self._update_projectiles_with_lod()
 
-        for projectile in self.projectiles:
-            # Skip gravitational calculations on some projectiles in performance mode
-            if not (skip_expensive and len(active_projectiles) % 3 == 0):
-                self._apply_gravitational_forces_to_projectile(projectile)
-
-            projectile.update_physics()
-            if projectile.is_active:
-                active_projectiles.append(projectile)
-
-        # Replace the list with only active projectiles (more efficient than removing during iteration)
-        self.projectiles = active_projectiles
-
-        # Optimize projectile count for performance
-        self._optimize_projectile_count()
+        # Optimize projectile count based on LOD settings
+        self._optimize_projectile_count_lod()
+        
+        # Update performance metrics
+        frame_time = time.time() - frame_start_time
+        self.performance_manager.update_frame_time(frame_time)
+        
+        # Update collision metrics
+        active_projectiles = self.projectile_pool.get_active_projectiles()
+        self.performance_manager.metrics.active_projectiles = len(active_projectiles)
 
     def _handle_collisions(self):
         """Check and resolve collisions between objects."""
@@ -657,8 +673,9 @@ class GameEngine:
                 )
                 self._damage_player("purple", "blue_square")
 
-        # Projectile collisions (check for hit point damage)
-        for projectile in self.projectiles:
+        # Projectile collisions (check for hit point damage) - use pool
+        active_projectiles = self.projectile_pool.get_active_projectiles()
+        for projectile in active_projectiles:
             if projectile.is_active:
                 if projectile.check_collision_with_square(self.blue_square):
                     # Play sound for projectile hitting blue cube with volume based on collision speed
@@ -691,8 +708,8 @@ class GameEngine:
                         )
                         self._damage_player("purple", "projectile")
 
-        # Projectile vs projectile collisions
-        self._handle_projectile_collisions_optimized()
+        # Projectile vs projectile collisions - use QuadTree for better performance
+        self._handle_projectile_collisions_quadtree()
 
         # Player vs player collision
         if self.purple_dot is not None:
@@ -770,7 +787,11 @@ class GameEngine:
 
     def shoot_projectile_player1(self):
         """Create and add a projectile for player 1 (red dot)."""
-        if len(self.projectiles) >= PROJECTILE_MAX_COUNT:
+        # Check projectile limit based on current LOD settings
+        current_settings = self.performance_manager.get_current_settings()
+        active_projectiles = self.projectile_pool.get_active_projectiles()
+        
+        if len(active_projectiles) >= current_settings.projectile_limit:
             return
 
         # Check rate limiter
@@ -814,19 +835,20 @@ class GameEngine:
             launch_y = self.red_dot.virtual_y + dy * launch_distance
             projectile_vel_x = dx * projectile_speed
             projectile_vel_y = dy * projectile_speed
-            from objects import Projectile
-
-            new_projectile = Projectile(
+            
+            # Use object pool instead of creating new projectile
+            new_projectile = self.projectile_pool.acquire_projectile(
                 launch_x,
                 launch_y,
                 projectile_vel_x,
                 projectile_vel_y,
-                "red",
+                "red"
             )
-            new_projectile.radius = self.get_player1_projectile_radius()
-            new_projectile.damage = self.get_player1_projectile_damage()
-            new_projectile.mass = self.get_player1_projectile_mass()
-            self.projectiles.append(new_projectile)
+            
+            if new_projectile is not None:
+                new_projectile.radius = self.get_player1_projectile_radius()
+                new_projectile.damage = self.get_player1_projectile_damage()
+                new_projectile.mass = self.get_player1_projectile_mass()
         # Play projectile fire sound effect
         try:
             import builtins
@@ -839,7 +861,11 @@ class GameEngine:
 
     def shoot_projectile_player2(self):
         """Create and add a projectile for player 2 (purple dot)."""
-        if self.purple_dot is None or len(self.projectiles) >= PROJECTILE_MAX_COUNT:
+        # Check projectile limit based on current LOD settings
+        current_settings = self.performance_manager.get_current_settings()
+        active_projectiles = self.projectile_pool.get_active_projectiles()
+        
+        if self.purple_dot is None or len(active_projectiles) >= current_settings.projectile_limit:
             return
 
         # Check rate limiter
@@ -885,19 +911,20 @@ class GameEngine:
             launch_y = self.purple_dot.virtual_y + dy * launch_distance
             projectile_vel_x = dx * projectile_speed
             projectile_vel_y = dy * projectile_speed
-            from objects import Projectile
-
-            new_projectile = Projectile(
+            
+            # Use object pool instead of creating new projectile
+            new_projectile = self.projectile_pool.acquire_projectile(
                 launch_x,
                 launch_y,
                 projectile_vel_x,
                 projectile_vel_y,
-                "purple",
+                "purple"
             )
-            new_projectile.radius = self.get_player2_projectile_radius()
-            new_projectile.damage = self.get_player2_projectile_damage()
-            new_projectile.mass = self.get_player2_projectile_mass()
-            self.projectiles.append(new_projectile)
+            
+            if new_projectile is not None:
+                new_projectile.radius = self.get_player2_projectile_radius()
+                new_projectile.damage = self.get_player2_projectile_damage()
+                new_projectile.mass = self.get_player2_projectile_mass()
         # Play projectile fire sound effect
         try:
             import builtins
@@ -1118,7 +1145,7 @@ class GameEngine:
             self.red_player_score += 2  # Goal = 2 points
             self.trigger_circle_pulse("red")  # Trigger red circle pulse
             self._respawn_blue_square()
-            self.projectiles.clear()  # Remove all projectiles after a goal
+            self.projectile_pool.clear_all()  # Remove all projectiles after a goal
             self.red_circle_overlap_timer = 0
             # Play goal scored sound effect
             try:
@@ -1133,7 +1160,7 @@ class GameEngine:
             self.purple_player_score += 2  # Goal = 2 points
             self.trigger_circle_pulse("purple")  # Trigger purple circle pulse
             self._respawn_blue_square()
-            self.projectiles.clear()  # Remove all projectiles after a goal
+            self.projectile_pool.clear_all()  # Remove all projectiles after a goal
             self.purple_circle_overlap_timer = 0
             # Play goal scored sound effect
             try:
@@ -1574,7 +1601,7 @@ class GameEngine:
                 "fps": current_fps,
                 "frame_time_ms": avg_frame_time * 1000,
                 "performance_mode": self.performance_mode,
-                "projectile_count": len(self.projectiles),
+                "projectile_count": len(self.projectile_pool.get_active_projectiles()),
                 "cell_size": self._get_dynamic_cell_size(),
             }
         return {
@@ -1636,3 +1663,103 @@ class GameEngine:
             # (don't force disable performance_mode, let FPS determine it)
 
             print("Fullscreen mode disabled: restored normal settings")
+
+    def _update_projectiles_with_lod(self):
+        """Update projectile physics with Level-of-Detail optimizations."""
+        # Get active projectiles from pool
+        active_projectiles = self.projectile_pool.get_active_projectiles()
+        current_settings = self.performance_manager.get_current_settings()
+        frame_count = getattr(self, 'frame_count', 0) + 1
+        self.frame_count = frame_count
+        
+        for projectile in active_projectiles:
+            # Apply gravity with LOD optimization
+            if not self.performance_manager.should_skip_expensive_operation(
+                'gravity_calculation', frame_count
+            ):
+                self._apply_gravitational_forces_to_projectile(projectile)
+            
+            # Update projectile physics
+            projectile.update_physics()
+            
+            # Remove inactive projectiles from pool
+            if not projectile.is_active:
+                self.projectile_pool.release_projectile(projectile)
+    
+    def _optimize_projectile_count_lod(self):
+        """Optimize projectile count based on current LOD settings."""
+        current_settings = self.performance_manager.get_current_settings()
+        max_projectiles = current_settings.projectile_limit
+        
+        # Release excess projectiles if over limit
+        active_projectiles = self.projectile_pool.get_active_projectiles()
+        if len(active_projectiles) > max_projectiles:
+            # Remove oldest projectiles first
+            excess_count = len(active_projectiles) - max_projectiles
+            for i in range(excess_count):
+                if i < len(active_projectiles):
+                    oldest_projectile = active_projectiles[i]
+                    oldest_projectile.is_active = False
+                    self.projectile_pool.release_projectile(oldest_projectile)
+    
+    def _handle_projectile_collisions_quadtree(self):
+        """QuadTree-based collision detection - O(n log n) average case."""
+        active_projectiles = self.projectile_pool.get_active_projectiles()
+        
+        if len(active_projectiles) <= 8:
+            # Use simple method for small counts
+            return self._handle_projectile_collisions_simple_pool(active_projectiles)
+        
+        # Clear and rebuild QuadTree
+        self.collision_quadtree.clear()
+        
+        # Insert all projectiles into QuadTree
+        for i, projectile in enumerate(active_projectiles):
+            self.collision_quadtree.insert(i, projectile)
+        
+        # Check collisions using QuadTree
+        checked_pairs = set()
+        collision_count = 0
+        
+        for i, projectile in enumerate(active_projectiles):
+            # Get potential collision candidates from QuadTree
+            candidates = self.collision_quadtree.retrieve_candidates(projectile)
+            
+            for candidate_index, candidate_projectile in candidates:
+                # Skip self and already checked pairs
+                if candidate_index <= i:
+                    continue
+                
+                pair_key = (i, candidate_index)
+                if pair_key in checked_pairs:
+                    continue
+                
+                checked_pairs.add(pair_key)
+                
+                # Check actual collision
+                if self._check_projectile_pair_collision(projectile, candidate_projectile):
+                    collision_count += 1
+        
+        # Update performance metrics
+        self.performance_manager.metrics.collision_checks = len(checked_pairs)
+        
+        return collision_count
+    
+    def _handle_projectile_collisions_simple_pool(self, projectiles):
+        """Simple O(n²) collision detection for projectiles from pool."""
+        from physics import PhysicsEngine
+        
+        n = len(projectiles)
+        collision_count = 0
+        
+        for i in range(n):
+            p1 = projectiles[i]
+            for j in range(i + 1, n):
+                p2 = projectiles[j]
+                if self._check_projectile_pair_collision(p1, p2):
+                    collision_count += 1
+        
+        # Update performance metrics
+        self.performance_manager.metrics.collision_checks = n * (n - 1) // 2
+        
+        return collision_count

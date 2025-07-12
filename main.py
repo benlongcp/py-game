@@ -1,6 +1,7 @@
 """
 Main entry point for the Topographical Plane application.
 Creates a shared game engine and split-screen multi-player setup.
+Enhanced with performance optimizations and monitoring.
 """
 
 import sys
@@ -18,6 +19,7 @@ from split_screen import SplitScreenView
 from objects import SVG_RED_SHIP, SVG_BLUE_CUBE
 from gamepad_manager import GamepadManager
 from config import GAMEPAD_ENABLED
+from performance_manager import get_performance_manager
 
 
 # --- Resource path helper for PyInstaller compatibility ---
